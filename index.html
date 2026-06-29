@@ -184,7 +184,7 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
 
 .chartwrap{ background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:14px 12px 8px; box-shadow:var(--shadow); }
 .chartwrap h3{ margin:2px 8px 8px; font-size:13px; color:var(--muted); font-weight:600; }
-#coolingChart{ width:100%; height:300px; display:block; }
+#coolingChart, #reviewChart{ width:100%; height:300px; display:block; }
 
 .rec-controls{ display:flex; gap:10px; flex-wrap:wrap; margin:16px 0; }
 
@@ -387,7 +387,7 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
       <div class="eyebrow">STEP 3 · 데이터 수집</div>
       <h2>냉각 곡선을 실시간으로 그려요 ❄️</h2>
       <p class="lead">1) 센서 온도가 항상 표시됩니다. <b>48 ℃</b> 아래로 내려가며 식기 시작하면 자동으로 기록을 시작하고,
-        <b>41 ℃</b> 아래로 내려가면 자동으로 종료해요. 직접 버튼으로 제어할 수도 있어요.<br>
+        <b>38 ℃</b> 아래로 내려가면 자동으로 종료해요. 직접 버튼으로 제어할 수도 있어요.<br>
         2) <b>로르산이 담겨 있는 시험관을 차가운 물에 넣어 주세요.</b> 이때, 센서가 시험관 벽에 닿아 있으면 안 돼요.</p>
 
       <div class="readout state-IDLE" id="readout">
@@ -421,9 +421,9 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
       <details class="settings">
         <summary>⚙️ 교사 설정 (측정 주기·자동 임계값)</summary>
         <div class="settings-grid">
-          <label>측정 주기(초)<input type="number" id="setSample" min="0.5" max="5" step="0.5" value="2"></label>
+          <label>측정 주기(초)<input type="number" id="setSample" min="0.5" max="5" step="0.5" value="1"></label>
           <label>자동 시작 온도(℃)<input type="number" id="setStart" min="40" max="70" step="1" value="48"></label>
-          <label>자동 종료 온도(℃)<input type="number" id="setStop" min="20" max="42" step="1" value="41"></label>
+          <label>자동 종료 온도(℃)<input type="number" id="setStop" min="20" max="42" step="1" value="38"></label>
           <label>응고점 참고(℃)<input type="number" id="setFreeze" min="35" max="50" step="1" value="43"></label>
         </div>
       </details>
@@ -455,7 +455,7 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
     </div>
     <div class="navrow">
       <button class="btn ghost" data-prev>← 이전</button>
-      <button class="btn" data-next id="toStep5" disabled>AI 평가 받으러 가기 →</button>
+      <span></span>
     </div>
   </section>
 
@@ -530,8 +530,8 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
 const CFG = {
   FREEZING_POINT: 43,   // 로르산(라우르산) 응고점(참고)
   AUTO_START_TEMP: 48,  // 이 온도 이하 + 하강 추세이면 자동 기록 시작
-  AUTO_STOP_TEMP: 41,   // 이 온도 이하로 내려가면 자동 기록 종료
-  SAMPLE_MS: 2000,      // 측정/기록 주기
+  AUTO_STOP_TEMP: 38,   // 이 온도 이하로 내려가면 자동 기록 종료
+  SAMPLE_MS: 1000,      // 측정/기록 주기
   FLAT_RATE: 0.08,      // 평탄(응고) 구간 판정: |Δ온도/Δ시간| ≤ 이 값(℃/s)
   PLATEAU_MIN_SEC: 20,  // 이 시간 이상 평탄해야 "뚜렷한" 응고 구간으로 인정
 };
@@ -615,8 +615,7 @@ function evaluateGating() {
   // STEP 2: 연결됨 (toStep3.disabled를 따로 제어)
   // STEP 3: 기록 STOPPED + 데이터 존재
   $('#toStep4').disabled = !(STATE.recState === 'STOPPED' && STATE.data.length > 1);
-  // STEP 4: 모든 질문 답변
-  $('#toStep5').disabled = !observeExplainComplete();
+  // STEP 4: 마지막 질문의 'AI 평가 받기' 버튼으로 STEP 5 진입 (updateQNav에서 제어)
   // STEP 5: 평가 결과 존재
   $('#toStep6').disabled = !STATE.evalResult;
 }
@@ -754,7 +753,7 @@ function startDemo() {
 /** 데모용 가상 온도 생성: 액체냉각 → 43℃ 평탄 → 고체냉각 */
 function makeDemoGenerator() {
   let phase = 0;             // 진행 인덱스(샘플 수)
-  let temp = 62;            // 시작 온도
+  let temp = 54;            // 시작 온도
   let plateauHeld = 0;
   return function next() {
     const noise = (Math.random() - 0.5) * 0.18;
@@ -913,7 +912,8 @@ function stopRecording(auto) {
   STATE.recState = 'STOPPED';
   setRecStateUI();
   STATE.features = extractFeatures(STATE.data);
-  renderFeatures();
+  if (STATE.features) renderFeatures();
+  else $('#featureBox').hidden = true;   // 표본이 너무 적으면 특징 카드 생략
   evaluateGating();
   if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
   toast(auto ? `${CFG.AUTO_STOP_TEMP}℃ 도달 — 자동으로 기록을 마쳤어요!` : '기록을 멈췄어요.', 'stop');
@@ -1138,7 +1138,7 @@ function renderQuestion() {
 function updateQNav() {
   $('#qPrev').disabled = qIdx === 0;
   const last = qIdx === QUESTIONS.length - 1;
-  $('#qNext').textContent = last ? '완료 ✓' : '다음 질문 →';
+  $('#qNext').textContent = last ? 'AI 평가 받기 →' : '다음 질문 →';
   const cur = answerOf(QUESTIONS[qIdx]);
   const answered = (typeof cur === 'string') ? cur.trim().length > 0 : !!cur;
   $('#qNext').disabled = !answered;
@@ -1147,7 +1147,7 @@ function updateQNav() {
 $('#qPrev').addEventListener('click', () => { if (qIdx > 0) { qIdx--; renderQuestion(); } });
 $('#qNext').addEventListener('click', () => {
   if (qIdx < QUESTIONS.length - 1) { qIdx++; renderQuestion(); }
-  else { toast('모든 질문에 답했어요! 평가를 받아볼까요?', 'stop'); evaluateGating(); }
+  else if (observeExplainComplete()) { unlock(5); goTo(5); }  // 모든 답변 완료 → AI 평가로
 });
 
 function observeExplainComplete() {
