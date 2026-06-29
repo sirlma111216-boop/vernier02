@@ -54,10 +54,16 @@ export async function onRequestPost({ request, env }) {
   } catch (e) {
     const msg = String((e && e.message) || e);
     const rateLimited = /\b429\b/.test(msg);
+    // Cloudflare 엣지가 Gemini 미지원 지역(예: 홍콩)에서 실행되면 400 location 오류.
+    // 같은 invocation은 같은 colo라 서버 재시도는 무의미 → 클라이언트가 재요청하면 다른 colo로 재배정됨.
+    const geoBlocked = /location is not supported/i.test(msg);
     return jsonResp({
-      error: rateLimited ? 'AI 사용량 한도 초과(잠시 후 재시도)' : 'AI 평가 호출 실패',
+      error: geoBlocked ? '지역 라우팅 문제(자동 재시도 중)'
+           : rateLimited ? 'AI 사용량 한도 초과(잠시 후 재시도)'
+           : 'AI 평가 호출 실패',
       detail: msg,
       rateLimited,
+      geoBlocked,
     });
   }
 }
