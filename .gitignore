@@ -1,0 +1,19 @@
+# 비밀 값은 절대 커밋하지 않는다 (API 키 등)
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+*.key
+*.secret
+
+# 의존성 / 빌드 / 캐시
+node_modules/
+.wrangler/
+dist/
+.cache/
+
+# 에디터 / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

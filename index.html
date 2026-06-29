@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>버니어 척척박사 ② — 로르산 냉각 곡선 탐구</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   버니어 척척박사 ② — 로르산 냉각 곡선 탐구 앱
+   팔레트: teal(주조) · paper(배경) · ink(텍스트) · vermilion(강조)
+   ============================================================ */
+:root{
+  --teal:      #14857a;
+  --teal-deep: #0f6258;
+  --teal-soft: #e3f3f0;
+  --paper:     #f6f2e9;
+  --card:      #ffffff;
+  --ink:       #243038;
+  --muted:     #6c7780;
+  --line:      #e6e1d5;
+  --vermilion: #e8552d;
+  --vermilion-soft:#fdeee8;
+  --good:      #2f9e44;
+  --warn:      #e8950c;
+  --shadow:    0 14px 36px -22px rgba(20,40,40,.55);
+  --radius:    20px;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; }
+body{
+  font-family:"Noto Sans KR", system-ui, -apple-system, sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1000px 600px at 50% -10%, rgba(20,133,122,.10), transparent 70%),
+    var(--paper);
+  min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{ letter-spacing:-.01em; }
+button{ font-family:inherit; }
+
+/* ---------- 헤더 & 마스코트 ---------- */
+.appbar{
+  position:sticky; top:0; z-index:30;
+  background:rgba(246,242,233,.86); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.appbar-inner{
+  max-width:880px; margin:0 auto; padding:14px 20px;
+  display:flex; align-items:center; gap:14px;
+}
+.brand{ display:flex; align-items:center; gap:12px; }
+.brand .bunny{ width:46px; height:46px; flex:0 0 auto; }
+.brand-text b{ display:block; font-size:12.5px; font-weight:500; color:var(--muted); line-height:1.1; letter-spacing:.01em; }
+.brand-text span{ display:block; font-size:22px; font-weight:900; color:var(--teal-deep); line-height:1.12; margin-top:2px; }
+.home-btn{ margin-left:auto; flex:0 0 auto; display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+  background:#fff; border:1.5px solid var(--line); color:var(--teal-deep);
+  font-size:14px; font-weight:800; padding:9px 16px; border-radius:999px; transition:.15s; }
+.home-btn:hover{ border-color:var(--teal); background:var(--teal-soft); transform:translateY(-1px); }
+.home-btn svg{ width:17px; height:17px; }
+@media (max-width:480px){ .home-btn span{ display:none; } .home-btn{ padding:9px 11px; } }
+
+/* ---------- 스테퍼 ---------- */
+.stepper{
+  max-width:880px; margin:0 auto; padding:10px 14px 14px;
+  display:flex; gap:6px; overflow-x:auto; scrollbar-width:none;
+}
+.stepper::-webkit-scrollbar{ display:none; }
+.step-chip{
+  flex:0 0 auto; display:flex; align-items:center; gap:7px;
+  padding:7px 12px; border-radius:999px; font-size:13px; font-weight:700;
+  background:#fff; border:1px solid var(--line); color:var(--muted);
+  white-space:nowrap; cursor:pointer; transition:.18s;
+}
+.step-chip .n{
+  width:20px; height:20px; border-radius:50%; display:grid; place-items:center;
+  font-size:12px; background:var(--line); color:#fff; font-weight:800;
+}
+.step-chip.active{ background:var(--teal); color:#fff; border-color:var(--teal); box-shadow:var(--shadow); }
+.step-chip.active .n{ background:#fff; color:var(--teal); }
+.step-chip.done{ color:var(--teal-deep); border-color:var(--teal-soft); background:var(--teal-soft); }
+.step-chip.done .n{ background:var(--good); }
+.step-chip.locked{ opacity:.5; cursor:not-allowed; }
+
+/* ---------- 본문 / 미션 카드 ---------- */
+main{ max-width:880px; margin:0 auto; padding:8px 18px 120px; }
+.panel{ display:none; animation:rise .35s ease; }
+.panel.active{ display:block; }
+@keyframes rise{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:24px 22px; margin-bottom:18px;
+}
+.card.accent{ border-top:4px solid var(--teal); }
+.eyebrow{ font-size:12.5px; font-weight:800; color:var(--vermilion); letter-spacing:.04em; text-transform:uppercase; }
+.card h2{ margin:6px 0 4px; font-size:23px; }
+.card .lead{ color:var(--muted); margin:0 0 14px; font-size:15px; line-height:1.6; }
+p{ line-height:1.7; }
+
+.note{
+  background:var(--teal-soft); border:1px solid #cfe9e3; border-radius:14px;
+  padding:14px 16px; font-size:14.5px; color:var(--teal-deep); line-height:1.6;
+}
+.safety{
+  background:var(--vermilion-soft); border:1px solid #f7d7cb; border-radius:14px;
+  padding:14px 16px; color:#a8371a; font-size:14px; line-height:1.7;
+}
+.safety b{ color:var(--vermilion); }
+
+/* ---------- 폼 요소 ---------- */
+label.q{ display:block; font-weight:800; margin:18px 0 10px; font-size:16px; }
+.choices{ display:grid; gap:10px; }
+.choice{
+  display:flex; align-items:center; gap:12px; padding:13px 15px; cursor:pointer;
+  border:1.5px solid var(--line); border-radius:14px; background:#fff; transition:.15s;
+  font-size:15px;
+}
+.choice:hover{ border-color:var(--teal); }
+.choice input{ accent-color:var(--teal); width:18px; height:18px; flex:0 0 auto; }
+.choice.sel{ border-color:var(--teal); background:var(--teal-soft); font-weight:700; }
+textarea, input[type=text]{
+  width:100%; font-family:inherit; font-size:15px; color:var(--ink);
+  border:1.5px solid var(--line); border-radius:14px; padding:13px 15px; resize:vertical;
+  background:#fff;
+}
+textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); border-color:var(--teal); }
+
+/* ---------- 체크리스트 ---------- */
+.checklist{ display:grid; gap:10px; counter-reset:c; }
+.check-item{
+  display:flex; gap:12px; align-items:flex-start; padding:14px 16px;
+  border:1.5px solid var(--line); border-radius:14px; background:#fff; cursor:pointer; transition:.15s;
+}
+.check-item:hover{ border-color:var(--teal); }
+.check-item.checked{ background:var(--teal-soft); border-color:var(--teal); }
+.check-item input{ margin-top:3px; width:20px; height:20px; accent-color:var(--teal); flex:0 0 auto; }
+.check-item .txt{ font-size:15px; line-height:1.6; }
+.check-item .txt b{ color:var(--teal-deep); }
+
+/* ---------- 버튼 ---------- */
+.btn{
+  font-size:16px; font-weight:800; color:#fff; background:var(--teal);
+  border:none; border-radius:999px; padding:14px 28px; cursor:pointer; transition:.15s;
+  box-shadow:0 10px 22px -12px rgba(20,133,122,.8);
+}
+.btn:hover{ transform:translateY(-1px); }
+.btn:disabled{ opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+.btn.ghost{ background:#fff; color:var(--ink); border:1.5px solid var(--line); box-shadow:none; }
+.btn.vermilion{ background:var(--vermilion); box-shadow:0 10px 22px -12px rgba(232,85,45,.8); }
+.btn.sm{ padding:10px 18px; font-size:14px; }
+.btn.block{ width:100%; }
+
+.navrow{ display:flex; justify-content:space-between; gap:12px; margin-top:6px; }
+
+/* ---------- STEP 2 연결 상태 ---------- */
+.device-card{ display:flex; align-items:center; gap:14px; padding:16px; border-radius:14px; background:var(--teal-soft); border:1px solid #cfe9e3; }
+.device-card .dot{ width:12px; height:12px; border-radius:50%; background:var(--good); box-shadow:0 0 0 4px rgba(47,158,68,.18); }
+.device-card.off{ background:#f4f4f4; border-color:var(--line); }
+.device-card.off .dot{ background:#bbb; box-shadow:none; }
+.device-meta b{ font-size:15px; }
+.device-meta span{ display:block; font-size:13px; color:var(--muted); }
+
+/* ---------- STEP 3 측정 ---------- */
+.readout{
+  text-align:center; padding:26px 18px; border-radius:var(--radius);
+  background:var(--teal); color:#fff; box-shadow:var(--shadow);
+  transition:background .6s ease;
+}
+.readout .big{ font-family:"JetBrains Mono",monospace; font-weight:700; font-size:clamp(64px,17vw,120px); line-height:1; font-variant-numeric:tabular-nums; }
+.readout .big .u{ font-size:.42em; font-weight:500; margin-left:8px; opacity:.9; }
+.readout .sub{ margin-top:10px; font-size:14px; opacity:.92; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+.pill{ display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.18); padding:5px 12px; border-radius:999px; font-weight:700; }
+
+.statebar{ display:flex; align-items:center; gap:10px; margin:16px 0; font-weight:800; font-size:14px; }
+.state-led{ width:11px; height:11px; border-radius:50%; background:#bbb; }
+.state-IDLE .state-led{ background:#bbb; }
+.state-RECORDING .state-led{ background:var(--vermilion); animation:blink 1s infinite; }
+.state-STOPPED .state-led{ background:var(--good); }
+@keyframes blink{ 50%{ opacity:.25; } }
+
+.chartwrap{ background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:14px 12px 8px; box-shadow:var(--shadow); }
+.chartwrap h3{ margin:2px 8px 8px; font-size:13px; color:var(--muted); font-weight:600; }
+#coolingChart{ width:100%; height:300px; display:block; }
+
+.rec-controls{ display:flex; gap:10px; flex-wrap:wrap; margin:16px 0; }
+
+.feature-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-top:14px; }
+.feature{ background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+.feature .k{ font-size:12px; color:var(--muted); font-weight:700; }
+.feature .v{ font-size:20px; font-weight:800; font-family:"JetBrains Mono",monospace; margin-top:2px; }
+.feature .v small{ font-size:13px; font-weight:500; color:var(--muted); }
+
+/* 교사 설정 */
+.settings{ margin-top:14px; }
+.settings summary{ cursor:pointer; font-size:13px; font-weight:700; color:var(--muted); }
+.settings-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:12px; }
+.settings-grid label{ font-size:13px; font-weight:700; display:block; }
+.settings-grid input{ width:100%; margin-top:5px; }
+
+/* ---------- STEP 4 질문 ---------- */
+.qprogress{ font-size:13px; color:var(--muted); font-weight:700; margin-bottom:6px; }
+.qbar{ height:6px; background:var(--line); border-radius:999px; overflow:hidden; margin-bottom:18px; }
+.qbar > i{ display:block; height:100%; background:var(--teal); transition:width .3s; }
+
+/* ---------- STEP 5 평가 ---------- */
+.verdict{ display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:14px; font-weight:800; font-size:17px; margin-bottom:16px; }
+.verdict.ok{ background:#e9f8ec; color:var(--good); border:1px solid #bfe6c8; }
+.verdict.no{ background:var(--vermilion-soft); color:var(--vermilion); border:1px solid #f7d7cb; }
+.eval-block{ margin:16px 0; }
+.eval-block h3{ font-size:15px; margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+.eval-block ul{ margin:0; padding-left:20px; }
+.eval-block li{ margin:6px 0; line-height:1.6; }
+.misc{ border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin:10px 0; background:#fff; }
+.misc .det{ font-weight:800; color:var(--vermilion); }
+.misc .gq{ margin:8px 0; color:var(--ink); }
+.misc .cc{ font-size:14px; color:var(--teal-deep); background:var(--teal-soft); padding:8px 12px; border-radius:10px; }
+.encourage{ background:var(--teal-soft); border-radius:14px; padding:16px; text-align:center; font-weight:700; color:var(--teal-deep); line-height:1.6; }
+
+.spinner{ width:34px; height:34px; border:4px solid var(--teal-soft); border-top-color:var(--teal); border-radius:50%; animation:spin 1s linear infinite; margin:24px auto; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ---------- STEP 6 보고서 ---------- */
+.report-inputs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
+.report-inputs label{ font-size:13px; font-weight:700; }
+.report-inputs input{ margin-top:5px; }
+
+#report{ background:#fff; color:#000; }
+.report-doc{ padding:8px; }
+.report-doc h1{ font-size:24px; text-align:center; margin:0 0 4px; color:var(--teal-deep); }
+.report-doc .rsub{ text-align:center; color:var(--muted); font-size:13px; margin-bottom:16px; }
+.report-meta{ display:flex; flex-wrap:wrap; gap:16px; justify-content:center; border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); padding:10px; font-size:14px; margin-bottom:18px; }
+.report-sec{ margin:16px 0; page-break-inside:avoid; }
+.report-sec h2{ font-size:16px; border-left:4px solid var(--teal); padding-left:10px; margin:0 0 10px; }
+.report-sec .qa{ margin:8px 0; }
+.report-sec .qa .qt{ font-weight:700; }
+.report-sec .qa .at{ color:#333; padding-left:6px; }
+.rtable{ width:100%; border-collapse:collapse; font-size:14px; }
+.rtable th,.rtable td{ border:1px solid var(--line); padding:8px 10px; text-align:center; }
+.rtable th{ background:var(--paper); }
+#reportChartImg{ width:100%; max-width:560px; display:block; margin:0 auto; border:1px solid var(--line); border-radius:8px; }
+
+/* ---------- 토스트 ---------- */
+#toasts{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:60; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none; }
+.toast{
+  background:var(--ink); color:#fff; padding:12px 20px; border-radius:999px; font-size:14px; font-weight:700;
+  box-shadow:0 10px 30px -10px rgba(0,0,0,.5); animation:toastIn .3s ease; max-width:90vw;
+}
+.toast.start{ background:var(--teal); }
+.toast.stop{ background:var(--good); }
+.toast.warn{ background:var(--vermilion); }
+@keyframes toastIn{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:none; } }
+
+/* ---------- 반응형 ---------- */
+@media (max-width:560px){
+  .card{ padding:20px 16px; }
+  .card h2{ font-size:20px; }
+}
+@media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+
+/* ============================================================
+   인쇄 전용
+   ============================================================ */
+@media print{
+  body{ background:#fff; }
+  .appbar, .stepper, #toasts, .no-print, .navrow{ display:none !important; }
+  main{ max-width:none; padding:0; }
+  .panel{ display:none !important; }
+  .panel#panel-6{ display:block !important; }
+  .card{ box-shadow:none; border:none; padding:0; margin:0; }
+  .report-sec{ page-break-inside:avoid; }
+  @page{ margin:14mm; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ========================= 헤더 ========================= -->
+<header class="appbar">
+  <div class="appbar-inner">
+    <div class="brand">
+      <!-- 마스코트 Bunny (실험복 입은 토끼) -->
+      <img class="bunny" src="data:image/png;base64,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" alt="Labbitory 로고" />
+      <div class="brand-text">
+        <b>버니어 척척박사</b>
+        <span>로르산 냉각 곡선 탐구</span>
+      </div>
+    </div>
+    <a class="home-btn" href="https://labbitory.com/vernier" title="Labbitory 홈으로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>
+      <span>홈</span>
+    </a>
+  </div>
+  <nav class="stepper" id="stepper"><!-- JS가 채움 --></nav>
+</header>
+
+<main>
+
+  <!-- ===================== STEP 0 — 도입 & 예상 ===================== -->
+  <section class="panel" id="panel-0">
+    <div class="card accent">
+      <div class="eyebrow">STEP 0 · 예상하기 (Predict)</div>
+      <h2>액체 로르산을 냉각하면 온도는 어떻게 변할까?</h2>
+      <p class="lead">오늘은 <b>로르산(라우르산)</b>을 천천히 식히면서 온도 변화를 관찰해요.
+        먼저 결과를 <b>예상</b>해 보고, 직접 실험으로 확인한 뒤, 그 까닭을 <b>설명</b>해 봅니다.</p>
+
+      <div class="note">🧊 액체가 굳어 고체가 되는 것을 <b>응고</b>라고 해요. 이때 온도 그래프는 어떤 모양일까요?</div>
+
+      <label class="q">예상 1. 액체 로르산을 계속 냉각하면 온도 그래프는?</label>
+      <div class="choices" id="predict1">
+        <label class="choice"><input type="radio" name="p1" value="①"> ① 계속 일정하게 낮아진다</label>
+        <label class="choice"><input type="radio" name="p1" value="②"> ② 낮아지다가 한동안 일정해진 뒤 다시 낮아진다</label>
+        <label class="choice"><input type="radio" name="p1" value="③"> ③ 일정하다가 갑자기 낮아진다</label>
+        <label class="choice"><input type="radio" name="p1" value="④"> ④ 낮아지다가 다시 높아진다</label>
+      </div>
+
+      <label class="q" for="predict2">예상 2. 그렇게 예상한 이유를 적어 보세요.</label>
+      <textarea id="predict2" rows="3" placeholder="예: 얼음이 얼 때처럼 어떤 구간에서는 온도가…"></textarea>
+    </div>
+    <div class="navrow">
+      <span></span>
+      <button class="btn" data-next>다음 단계로 →</button>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 1 — 실험 준비 ===================== -->
+  <section class="panel" id="panel-1">
+    <div class="card accent">
+      <div class="eyebrow">STEP 1 · 실험 준비</div>
+      <h2>먼저 실제 실험을 직접 해 봐요 🧪</h2>
+      <p class="lead">아래 순서대로 실험을 <b>직접 진행</b>하면서 각 항목을 체크하세요. 모두 체크하면 다음 단계(센서 연결)로 넘어갑니다.</p>
+
+      <div class="note"><b>준비물</b> · 로르산, 뜨거운 물, 시험관, 비커, 스탠드, 집게, 집게깔이, Go Direct 온도 센서, 보안경·내열장갑·실험복</div>
+
+      <div class="checklist" id="checklist">
+        <label class="check-item"><input type="checkbox"><span class="txt">1. 시험관에 <b>로르산을 1/3 정도</b> 넣는다.</span></label>
+        <label class="check-item"><input type="checkbox"><span class="txt">2. 시험관을 <b>뜨거운 물이 담긴 비커</b>에 넣고 스탠드·집게로 고정한 뒤, 로르산이 <b>모두 녹을 때까지</b> 기다린다.</span></label>
+        <label class="check-item"><input type="checkbox"><span class="txt">3. 로르산이 모두 녹으면 비커에서 시험관을 꺼내고, <b>온도 센서 끝이 액체 로르산에 잠기도록</b> 시험관에 넣어 고정한다.</span></label>
+        <label class="check-item"><input type="checkbox"><span class="txt">4. 다음 단계에서 센서를 연결하면, 앱이 <b>2초마다 촘촘히 자동 측정</b>하고 적당한 온도에서 기록을 시작/종료해 줍니다.</span></label>
+      </div>
+
+      <div class="safety" style="margin-top:16px">
+        ⚠️ <b>안전 안내</b> · 유리 기구 파손 주의 · 뜨거운 물 화상 주의 · 실험 중 창문을 열어 환기 · 남은 물질은 지정된 곳에 처리하세요.
+      </div>
+    </div>
+    <div class="navrow">
+      <button class="btn ghost" data-prev>← 이전</button>
+      <button class="btn" data-next>센서 연결하러 가기 →</button>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 2 — 센서 연결 ===================== -->
+  <section class="panel" id="panel-2">
+    <div class="card accent">
+      <div class="eyebrow">STEP 2 · 센서 연결</div>
+      <h2>Go Direct 온도 센서를 연결해요 📡</h2>
+      <p class="lead">아래 버튼을 누르면 블루투스 기기 선택 창이 떠요. 이름이 <b>GDX</b>로 시작하는 온도 센서를 골라 주세요.</p>
+
+      <div class="device-card off" id="deviceCard">
+        <span class="dot"></span>
+        <div class="device-meta">
+          <b id="deviceName">아직 연결되지 않음</b>
+          <span id="deviceInfo">Chrome · Edge · 웨일 브라우저에서, https 또는 localhost로 열어야 동작합니다.</span>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" id="connectBtn">센서 연결하기</button>
+        <button class="btn ghost" id="disconnectBtn" hidden>연결 끊기</button>
+        <button class="btn ghost sm" id="demoBtn" title="센서 없이 시연용 데이터로 진행">센서 없이 시연(데모)</button>
+      </div>
+      <p id="connectMsg" class="lead" style="margin-top:14px; min-height:20px;"></p>
+    </div>
+    <div class="navrow">
+      <button class="btn ghost" data-prev>← 이전</button>
+      <button class="btn" data-next id="toStep3" disabled>측정 시작하러 가기 →</button>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 3 — 데이터 수집 ===================== -->
+  <section class="panel" id="panel-3">
+    <div class="card accent">
+      <div class="eyebrow">STEP 3 · 데이터 수집</div>
+      <h2>냉각 곡선을 실시간으로 그려요 ❄️</h2>
+      <p class="lead">센서 온도가 항상 표시됩니다. <b>55 ℃</b> 아래로 내려가며 식기 시작하면 자동으로 기록을 시작하고,
+        <b>33 ℃</b> 아래로 내려가면 자동으로 종료해요. 직접 버튼으로 제어할 수도 있어요.</p>
+
+      <div class="readout state-IDLE" id="readout">
+        <div class="big"><span id="liveTemp">--</span><span class="u">℃</span></div>
+        <div class="sub">
+          <span class="pill" id="trendPill">● 대기 중</span>
+          <span class="pill" id="elapsedPill">⏱ 0초</span>
+        </div>
+      </div>
+
+      <div class="statebar state-IDLE" id="statebar">
+        <span class="state-led"></span><span id="stateText">대기 중 — 센서가 식기 시작하면 자동으로 기록해요.</span>
+      </div>
+
+      <div class="chartwrap">
+        <h3>시간에 따른 로르산 온도 (냉각 곡선)</h3>
+        <canvas id="coolingChart"></canvas>
+      </div>
+
+      <div class="rec-controls">
+        <button class="btn vermilion sm" id="recStartBtn">● 기록 시작</button>
+        <button class="btn ghost sm" id="recStopBtn" disabled>■ 기록 정지</button>
+        <button class="btn ghost sm" id="recResetBtn">↺ 기록 초기화</button>
+      </div>
+
+      <div id="featureBox" hidden>
+        <div class="note" style="margin-bottom:6px;">✅ 기록 완료! 곡선에서 다음을 자동으로 찾았어요.</div>
+        <div class="feature-grid" id="featureGrid"></div>
+      </div>
+
+      <details class="settings">
+        <summary>⚙️ 교사 설정 (측정 주기·자동 임계값)</summary>
+        <div class="settings-grid">
+          <label>측정 주기(초)<input type="number" id="setSample" min="0.5" max="5" step="0.5" value="2"></label>
+          <label>자동 시작 온도(℃)<input type="number" id="setStart" min="40" max="70" step="1" value="55"></label>
+          <label>자동 종료 온도(℃)<input type="number" id="setStop" min="20" max="42" step="1" value="33"></label>
+          <label>응고점 참고(℃)<input type="number" id="setFreeze" min="35" max="50" step="1" value="43"></label>
+        </div>
+      </details>
+    </div>
+    <div class="navrow">
+      <button class="btn ghost" data-prev>← 이전</button>
+      <button class="btn" data-next id="toStep4" disabled>탐구 질문 풀러 가기 →</button>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 4 — 탐구 질문 ===================== -->
+  <section class="panel" id="panel-4">
+    <div class="card accent">
+      <div class="eyebrow">STEP 4 · 탐구 질문 (Observe · Explain)</div>
+      <h2>그래프를 보며 하나씩 답해 봐요 🔎</h2>
+      <div class="chartwrap" style="margin:10px 0 18px;">
+        <h3>내가 측정한 냉각 곡선</h3>
+        <canvas id="reviewChart"></canvas>
+      </div>
+
+      <div class="qprogress" id="qProgress">질문 1 / 5</div>
+      <div class="qbar"><i id="qBar" style="width:20%"></i></div>
+      <div id="questionArea"><!-- JS가 질문을 하나씩 표시 --></div>
+
+      <div class="navrow" style="margin-top:18px;">
+        <button class="btn ghost sm" id="qPrev" disabled>← 이전 질문</button>
+        <button class="btn sm" id="qNext">다음 질문 →</button>
+      </div>
+    </div>
+    <div class="navrow">
+      <button class="btn ghost" data-prev>← 이전</button>
+      <button class="btn" data-next id="toStep5" disabled>AI 평가 받으러 가기 →</button>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 5 — AI 평가 ===================== -->
+  <section class="panel" id="panel-5">
+    <div class="card accent">
+      <div class="eyebrow">STEP 5 · AI 평가 & 피드백</div>
+      <h2>척척박사 토끼의 피드백을 받아요 🐰</h2>
+      <p class="lead">측정 데이터와 내 답변을 종합해서 평가해 줍니다. <b>개인정보(이름·학교·반)는 전송하지 않아요.</b></p>
+      <button class="btn vermilion" id="evalBtn">평가 받기</button>
+      <div id="evalArea" style="margin-top:18px;"></div>
+    </div>
+    <div class="navrow">
+      <button class="btn ghost" data-prev>← 이전</button>
+      <button class="btn" data-next id="toStep6" disabled>보고서 만들러 가기 →</button>
+    </div>
+  </section>
+
+  <!-- ===================== STEP 6 — 보고서 ===================== -->
+  <section class="panel" id="panel-6">
+    <div class="card accent no-print">
+      <div class="eyebrow">STEP 6 · 보고서 & 인쇄</div>
+      <h2>탐구 보고서를 완성해요 📄</h2>
+      <p class="lead">아래 정보를 입력하면 보고서에 자동으로 들어가요. (이 정보는 보고서에만 쓰이고 AI로 전송되지 않습니다.)</p>
+      <div class="report-inputs">
+        <label>학교<input type="text" id="rSchool" placeholder="○○중학교"></label>
+        <label>학년<input type="text" id="rGrade" placeholder="3"></label>
+        <label>반<input type="text" id="rClass" placeholder="2"></label>
+        <label>이름<input type="text" id="rName" placeholder="홍길동"></label>
+        <label>날짜<input type="text" id="rDate" placeholder="2026-06-28"></label>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" id="buildReportBtn">보고서 만들기</button>
+        <button class="btn vermilion" id="printBtn" disabled>🖨 인쇄하기</button>
+      </div>
+    </div>
+
+    <div class="card" id="report" hidden>
+      <div class="report-doc" id="reportDoc"><!-- JS가 채움 --></div>
+    </div>
+
+    <div class="navrow no-print">
+      <button class="btn ghost" data-prev>← 이전</button>
+      <span></span>
+    </div>
+  </section>
+
+</main>
+
+<div id="toasts"></div>
+
+<!-- 버니어 godirect 라이브러리 (인라인 추출본 — 네트워크 불필요, 오프라인 동작) -->
+<script>
+/**
+ * Copyright (c) 2023 Vernier Software. All rights reserved.
+ * This code may only be used under the BSD 3-Clause license found at
+ * https://raw.githubusercontent.com/VernierST/godirect-js/main/LICENSE
+ */
+
+!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t="undefined"!=typeof globalThis?globalThis:t||self).godirect=e()}(this,(function(){"use strict";function t(t,e,r,n,o,i,a){try{var u=t[i](a),c=u.value}catch(t){return void r(t)}u.done?e(c):Promise.resolve(c).then(n,o)}function e(e){return function(){var r=this,n=arguments;return new Promise((function(o,i){var a=e.apply(r,n);function u(e){t(a,o,i,u,c,"next",e)}function c(e){t(a,o,i,u,c,"throw",e)}u(void 0)}))}}function r(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function n(t,e){for(var r=0;r<e.length;r++){var n=e[r];n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(t,n.key,n)}}function o(t,e,r){return e&&n(t.prototype,e),r&&n(t,r),t}function i(t,e){if("function"!=typeof e&&null!==e)throw new TypeError("Super expression must either be null or a function");t.prototype=Object.create(e&&e.prototype,{constructor:{value:t,writable:!0,configurable:!0}}),e&&u(t,e)}function a(t){return a=Object.setPrototypeOf?Object.getPrototypeOf:function(t){return t.__proto__||Object.getPrototypeOf(t)},a(t)}function u(t,e){return u=Object.setPrototypeOf||function(t,e){return t.__proto__=e,t},u(t,e)}function c(t,e){if(e&&("object"==typeof e||"function"==typeof e))return e;if(void 0!==e)throw new TypeError("Derived constructors may only return object or undefined");return function(t){if(void 0===t)throw new ReferenceError("this hasn't been initialised - super() hasn't been called");return t}(t)}function s(t){var e=function(){if("undefined"==typeof Reflect||!Reflect.construct)return!1;if(Reflect.construct.sham)return!1;if("function"==typeof Proxy)return!0;try{return Boolean.prototype.valueOf.call(Reflect.construct(Boolean,[],(function(){}))),!0}catch(t){return!1}}();return function(){var r,n=a(t);if(e){var o=a(this).constructor;r=Reflect.construct(n,arguments,o)}else r=n.apply(this,arguments);return c(this,r)}}function f(t){return function(t){if(Array.isArray(t))return l(t)}(t)||function(t){if("undefined"!=typeof Symbol&&null!=t[Symbol.iterator]||null!=t["@@iterator"])return Array.from(t)}(t)||function(t,e){if(!t)return;if("string"==typeof t)return l(t,e);var r=Object.prototype.toString.call(t).slice(8,-1);"Object"===r&&t.constructor&&(r=t.constructor.name);if("Map"===r||"Set"===r)return Array.from(t);if("Arguments"===r||/^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(r))return l(t,e)}(t)||function(){throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.")}()}function l(t,e){(null==e||e>t.length)&&(e=t.length);for(var r=0,n=new Array(e);r<e;r++)n[r]=t[r];return n}var p="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof window?window:"undefined"!=typeof global?global:"undefined"!=typeof self?self:{};function h(t){return t&&t.__esModule&&Object.prototype.hasOwnProperty.call(t,"default")?t.default:t}var v={exports:{}},d=function(t){return t&&t.Math==Math&&t},y=d("object"==typeof globalThis&&globalThis)||d("object"==typeof window&&window)||d("object"==typeof self&&self)||d("object"==typeof p&&p)||function(){return this}()||Function("return this")(),g=function(t){try{return!!t()}catch(t){return!0}},m=!g((function(){var t=function(){}.bind();return"function"!=typeof t||t.hasOwnProperty("prototype")})),b=m,w=Function.prototype,x=w.apply,S=w.call,k="object"==typeof Reflect&&Reflect.apply||(b?S.bind(x):function(){return S.apply(x,arguments)}),E=m,_=Function.prototype,O=_.bind,A=_.call,j=E&&O.bind(A,A),P=E?function(t){return t&&j(t)}:function(t){return t&&function(){return A.apply(t,arguments)}},T=function(t){return"function"==typeof t},M={},L=!g((function(){return 7!=Object.defineProperty({},1,{get:function(){return 7}})[1]})),R=m,I=Function.prototype.call,C=R?I.bind(I):function(){return I.apply(I,arguments)},U={},D={}.propertyIsEnumerable,N=Object.getOwnPropertyDescriptor,F=N&&!D.call({1:2},1);U.f=F?function(t){var e=N(this,t);return!!e&&e.enumerable}:D;var G,V,z=function(t,e){return{enumerable:!(1&t),configurable:!(2&t),writable:!(4&t),value:e}},W=P,B=W({}.toString),Q=W("".slice),H=function(t){return Q(B(t),8,-1)},q=P,K=g,Y=H,J=y.Object,X=q("".split),$=K((function(){return!J("z").propertyIsEnumerable(0)}))?function(t){return"String"==Y(t)?X(t,""):J(t)}:J,Z=y.TypeError,tt=function(t){if(null==t)throw Z("Can't call method on "+t);return t},et=$,rt=tt,nt=function(t){return et(rt(t))},ot=T,it=function(t){return"object"==typeof t?null!==t:ot(t)},at={},ut=at,ct=y,st=T,ft=function(t){return st(t)?t:void 0},lt=function(t,e){return arguments.length<2?ft(ut[t])||ft(ct[t]):ut[t]&&ut[t][e]||ct[t]&&ct[t][e]},pt=P({}.isPrototypeOf),ht=lt("navigator","userAgent")||"",vt=y,dt=ht,yt=vt.process,gt=vt.Deno,mt=yt&&yt.versions||gt&&gt.version,bt=mt&&mt.v8;bt&&(V=(G=bt.split("."))[0]>0&&G[0]<4?1:+(G[0]+G[1])),!V&&dt&&(!(G=dt.match(/Edge\/(\d+)/))||G[1]>=74)&&(G=dt.match(/Chrome\/(\d+)/))&&(V=+G[1]);var wt=V,xt=wt,St=g,kt=!!Object.getOwnPropertySymbols&&!St((function(){var t=Symbol();return!String(t)||!(Object(t)instanceof Symbol)||!Symbol.sham&&xt&&xt<41})),Et=kt&&!Symbol.sham&&"symbol"==typeof Symbol.iterator,_t=lt,Ot=T,At=pt,jt=Et,Pt=y.Object,Tt=jt?function(t){return"symbol"==typeof t}:function(t){var e=_t("Symbol");return Ot(e)&&At(e.prototype,Pt(t))},Mt=y.String,Lt=function(t){try{return Mt(t)}catch(t){return"Object"}},Rt=T,It=Lt,Ct=y.TypeError,Ut=function(t){if(Rt(t))return t;throw Ct(It(t)+" is not a function")},Dt=Ut,Nt=function(t,e){var r=t[e];return null==r?void 0:Dt(r)},Ft=C,Gt=T,Vt=it,zt=y.TypeError,Wt={exports:{}},Bt=y,Qt=Object.defineProperty,Ht=function(t,e){try{Qt(Bt,t,{value:e,configurable:!0,writable:!0})}catch(r){Bt[t]=e}return e},qt="__core-js_shared__",Kt=y[qt]||Ht(qt,{}),Yt=Kt;(Wt.exports=function(t,e){return Yt[t]||(Yt[t]=void 0!==e?e:{})})("versions",[]).push({version:"3.21.0",mode:"pure",copyright:"짤 2014-2022 Denis Pushkarev (zloirock.ru)",license:"https://github.com/zloirock/core-js/blob/v3.21.0/LICENSE",source:"https://github.com/zloirock/core-js"});var Jt=tt,Xt=y.Object,$t=function(t){return Xt(Jt(t))},Zt=$t,te=P({}.hasOwnProperty),ee=Object.hasOwn||function(t,e){return te(Zt(t),e)},re=P,ne=0,oe=Math.random(),ie=re(1..toString),ae=function(t){return"Symbol("+(void 0===t?"":t)+")_"+ie(++ne+oe,36)},ue=y,ce=Wt.exports,se=ee,fe=ae,le=kt,pe=Et,he=ce("wks"),ve=ue.Symbol,de=ve&&ve.for,ye=pe?ve:ve&&ve.withoutSetter||fe,ge=function(t){if(!se(he,t)||!le&&"string"!=typeof he[t]){var e="Symbol."+t;le&&se(ve,t)?he[t]=ve[t]:he[t]=pe&&de?de(e):ye(e)}return he[t]},me=C,be=it,we=Tt,xe=Nt,Se=function(t,e){var r,n;if("string"===e&&Gt(r=t.toString)&&!Vt(n=Ft(r,t)))return n;if(Gt(r=t.valueOf)&&!Vt(n=Ft(r,t)))return n;if("string"!==e&&Gt(r=t.toString)&&!Vt(n=Ft(r,t)))return n;throw zt("Can't convert object to primitive value")},ke=ge,Ee=y.TypeError,_e=ke("toPrimitive"),Oe=function(t,e){if(!be(t)||we(t))return t;var r,n=xe(t,_e);if(n){if(void 0===e&&(e="default"),r=me(n,t,e),!be(r)||we(r))return r;throw Ee("Can't convert object to primitive value")}return void 0===e&&(e="number"),Se(t,e)},Ae=Tt,je=function(t){var e=Oe(t,"string");return Ae(e)?e:e+""},Pe=it,Te=y.document,Me=Pe(Te)&&Pe(Te.createElement),Le=function(t){return Me?Te.createElement(t):{}},Re=Le,Ie=!L&&!g((function(){return 7!=Object.defineProperty(Re("div"),"a",{get:function(){return 7}}).a})),Ce=L,Ue=C,De=U,Ne=z,Fe=nt,Ge=je,Ve=ee,ze=Ie,We=Object.getOwnPropertyDescriptor;M.f=Ce?We:function(t,e){if(t=Fe(t),e=Ge(e),ze)try{return We(t,e)}catch(t){}if(Ve(t,e))return Ne(!Ue(De.f,t,e),t[e])};var Be=g,Qe=T,He=/#|\.prototype\./,qe=function(t,e){var r=Ye[Ke(t)];return r==Xe||r!=Je&&(Qe(e)?Be(e):!!e)},Ke=qe.normalize=function(t){return String(t).replace(He,".").toLowerCase()},Ye=qe.data={},Je=qe.NATIVE="N",Xe=qe.POLYFILL="P",$e=qe,Ze=Ut,tr=m,er=P(P.bind),rr=function(t,e){return Ze(t),void 0===e?t:tr?er(t,e):function(){return t.apply(e,arguments)}},nr={},or=L&&g((function(){return 42!=Object.defineProperty((function(){}),"prototype",{value:42,writable:!1}).prototype})),ir=y,ar=it,ur=ir.String,cr=ir.TypeError,sr=function(t){if(ar(t))return t;throw cr(ur(t)+" is not an object")},fr=L,lr=Ie,pr=or,hr=sr,vr=je,dr=y.TypeError,yr=Object.defineProperty,gr=Object.getOwnPropertyDescriptor,mr="enumerable",br="configurable",wr="writable";nr.f=fr?pr?function(t,e,r){if(hr(t),e=vr(e),hr(r),"function"==typeof t&&"prototype"===e&&"value"in r&&wr in r&&!r.writable){var n=gr(t,e);n&&n.writable&&(t[e]=r.value,r={configurable:br in r?r.configurable:n.configurable,enumerable:mr in r?r.enumerable:n.enumerable,writable:!1})}return yr(t,e,r)}:yr:function(t,e,r){if(hr(t),e=vr(e),hr(r),lr)try{return yr(t,e,r)}catch(t){}if("get"in r||"set"in r)throw dr("Accessors not supported");return"value"in r&&(t[e]=r.value),t};var xr=nr,Sr=z,kr=L?function(t,e,r){return xr.f(t,e,Sr(1,r))}:function(t,e,r){return t[e]=r,t},Er=y,_r=k,Or=P,Ar=T,jr=M.f,Pr=$e,Tr=at,Mr=rr,Lr=kr,Rr=ee,Ir=function(t){var e=function(r,n,o){if(this instanceof e){switch(arguments.length){case 0:return new t;case 1:return new t(r);case 2:return new t(r,n)}return new t(r,n,o)}return _r(t,this,arguments)};return e.prototype=t.prototype,e},Cr=function(t,e){var r,n,o,i,a,u,c,s,f=t.target,l=t.global,p=t.stat,h=t.proto,v=l?Er:p?Er[f]:(Er[f]||{}).prototype,d=l?Tr:Tr[f]||Lr(Tr,f,{})[f],y=d.prototype;for(o in e)r=!Pr(l?o:f+(p?".":"#")+o,t.forced)&&v&&Rr(v,o),a=d[o],r&&(u=t.noTargetGet?(s=jr(v,o))&&s.value:v[o]),i=r&&u?u:e[o],r&&typeof a==typeof i||(c=t.bind&&r?Mr(i,Er):t.wrap&&r?Ir(i):h&&Ar(i)?Or(i):i,(t.sham||i&&i.sham||a&&a.sham)&&Lr(c,"sham",!0),Lr(d,o,c),h&&(Rr(Tr,n=f+"Prototype")||Lr(Tr,n,{}),Lr(Tr[n],o,i),t.real&&y&&!y[o]&&Lr(y,o,i)))},Ur=Wt.exports,Dr=ae,Nr=Ur("keys"),Fr=function(t){return Nr[t]||(Nr[t]=Dr(t))},Gr=!g((function(){function t(){}return t.prototype.constructor=null,Object.getPrototypeOf(new t)!==t.prototype})),Vr=y,zr=ee,Wr=T,Br=$t,Qr=Gr,Hr=Fr("IE_PROTO"),qr=Vr.Object,Kr=qr.prototype,Yr=Qr?qr.getPrototypeOf:function(t){var e=Br(t);if(zr(e,Hr))return e[Hr];var r=e.constructor;return Wr(r)&&e instanceof r?r.prototype:e instanceof qr?Kr:null},Jr=y,Xr=T,$r=Jr.String,Zr=Jr.TypeError,tn=P,en=sr,rn=function(t){if("object"==typeof t||Xr(t))return t;throw Zr("Can't set "+$r(t)+" as a prototype")},nn=Object.setPrototypeOf||("__proto__"in{}?function(){var t,e=!1,r={};try{(t=tn(Object.getOwnPropertyDescriptor(Object.prototype,"__proto__").set))(r,[]),e=r instanceof Array}catch(t){}return function(r,n){return en(r),rn(n),e?t(r,n):r.__proto__=n,r}}():void 0),on={},an=Math.ceil,un=Math.floor,cn=function(t){var e=+t;return e!=e||0===e?0:(e>0?un:an)(e)},sn=cn,fn=Math.max,ln=Math.min,pn=function(t,e){var r=sn(t);return r<0?fn(r+e,0):ln(r,e)},hn=cn,vn=Math.min,dn=function(t){return t>0?vn(hn(t),9007199254740991):0},yn=dn,gn=function(t){return yn(t.length)},mn=nt,bn=pn,wn=gn,xn=function(t){return function(e,r,n){var o,i=mn(e),a=wn(i),u=bn(n,a);if(t&&r!=r){for(;a>u;)if((o=i[u++])!=o)return!0}else for(;a>u;u++)if((t||u in i)&&i[u]===r)return t||u||0;return!t&&-1}},Sn={includes:xn(!0),indexOf:xn(!1)},kn={},En=ee,_n=nt,On=Sn.indexOf,An=kn,jn=P([].push),Pn=function(t,e){var r,n=_n(t),o=0,i=[];for(r in n)!En(An,r)&&En(n,r)&&jn(i,r);for(;e.length>o;)En(n,r=e[o++])&&(~On(i,r)||jn(i,r));return i},Tn=["constructor","hasOwnProperty","isPrototypeOf","propertyIsEnumerable","toLocaleString","toString","valueOf"],Mn=Pn,Ln=Tn.concat("length","prototype");on.f=Object.getOwnPropertyNames||function(t){return Mn(t,Ln)};var Rn={};Rn.f=Object.getOwnPropertySymbols;var In=lt,Cn=on,Un=Rn,Dn=sr,Nn=P([].concat),Fn=In("Reflect","ownKeys")||function(t){var e=Cn.f(Dn(t)),r=Un.f;return r?Nn(e,r(t)):e},Gn=ee,Vn=Fn,zn=M,Wn=nr,Bn={},Qn=Pn,Hn=Tn,qn=Object.keys||function(t){return Qn(t,Hn)},Kn=L,Yn=or,Jn=nr,Xn=sr,$n=nt,Zn=qn;Bn.f=Kn&&!Yn?Object.defineProperties:function(t,e){Xn(t);for(var r,n=$n(e),o=Zn(e),i=o.length,a=0;i>a;)Jn.f(t,r=o[a++],n[r]);return t};var to,eo=lt("document","documentElement"),ro=sr,no=Bn,oo=Tn,io=kn,ao=eo,uo=Le,co=Fr("IE_PROTO"),so=function(){},fo=function(t){return"<script>"+t+"</"+"script>"},lo=function(t){t.write(fo("")),t.close();var e=t.parentWindow.Object;return t=null,e},po=function(){try{to=new ActiveXObject("htmlfile")}catch(t){}var t,e;po="undefined"!=typeof document?document.domain&&to?lo(to):((e=uo("iframe")).style.display="none",ao.appendChild(e),e.src=String("javascript:"),(t=e.contentWindow.document).open(),t.write(fo("document.F=Object")),t.close(),t.F):lo(to);for(var r=oo.length;r--;)delete po.prototype[oo[r]];return po()};io[co]=!0;var ho=Object.create||function(t,e){var r;return null!==t?(so.prototype=ro(t),r=new so,so.prototype=null,r[co]=t):r=po(),void 0===e?r:no.f(r,e)},vo=P("".replace),yo=String(Error("zxcasd").stack),go=/\n\s*at [^:]*:[^\n]*/,mo=go.test(yo),bo=it,wo=kr,xo={},So=xo,ko=ge("iterator"),Eo=Array.prototype,_o=function(t){return void 0!==t&&(So.Array===t||Eo[ko]===t)},Oo={};Oo[ge("toStringTag")]="z";var Ao="[object z]"===String(Oo),jo=y,Po=Ao,To=T,Mo=H,Lo=ge("toStringTag"),Ro=jo.Object,Io="Arguments"==Mo(function(){return arguments}()),Co=Po?Mo:function(t){var e,r,n;return void 0===t?"Undefined":null===t?"Null":"string"==typeof(r=function(t,e){try{return t[e]}catch(t){}}(e=Ro(t),Lo))?r:Io?Mo(e):"Object"==(n=Mo(e))&&To(e.callee)?"Arguments":n},Uo=Co,Do=Nt,No=xo,Fo=ge("iterator"),Go=function(t){if(null!=t)return Do(t,Fo)||Do(t,"@@iterator")||No[Uo(t)]},Vo=C,zo=Ut,Wo=sr,Bo=Lt,Qo=Go,Ho=y.TypeError,qo=function(t,e){var r=arguments.length<2?Qo(t):e;if(zo(r))return Wo(Vo(r,t));throw Ho(Bo(t)+" is not iterable")},Ko=C,Yo=sr,Jo=Nt,Xo=function(t,e,r){var n,o;Yo(t);try{if(!(n=Jo(t,"return"))){if("throw"===e)throw r;return r}n=Ko(n,t)}catch(t){o=!0,n=t}if("throw"===e)throw r;if(o)throw n;return Yo(n),r},$o=rr,Zo=C,ti=sr,ei=Lt,ri=_o,ni=gn,oi=pt,ii=qo,ai=Go,ui=Xo,ci=y.TypeError,si=function(t,e){this.stopped=t,this.result=e},fi=si.prototype,li=function(t,e,r){var n,o,i,a,u,c,s,f=r&&r.that,l=!(!r||!r.AS_ENTRIES),p=!(!r||!r.IS_ITERATOR),h=!(!r||!r.INTERRUPTED),v=$o(e,f),d=function(t){return n&&ui(n,"normal",t),new si(!0,t)},y=function(t){return l?(ti(t),h?v(t[0],t[1],d):v(t[0],t[1])):h?v(t,d):v(t)};if(p)n=t;else{if(!(o=ai(t)))throw ci(ei(t)+" is not iterable");if(ri(o)){for(i=0,a=ni(t);a>i;i++)if((u=y(t[i]))&&oi(fi,u))return u;return new si(!1)}n=ii(t,o)}for(c=n.next;!(s=Zo(c,n)).done;){try{u=y(s.value)}catch(t){ui(n,"throw",t)}if("object"==typeof u&&u&&oi(fi,u))return u}return new si(!1)},pi=Co,hi=y.String,vi=function(t){if("Symbol"===pi(t))throw TypeError("Cannot convert a Symbol value to a string");return hi(t)},di=vi,yi=z,gi=!g((function(){var t=Error("a");return!("stack"in t)||(Object.defineProperty(t,"stack",yi(1,7)),7!==t.stack)})),mi=Cr,bi=y,wi=pt,xi=Yr,Si=nn,ki=function(t,e,r){for(var n=Vn(e),o=Wn.f,i=zn.f,a=0;a<n.length;a++){var u=n[a];Gn(t,u)||r&&Gn(r,u)||o(t,u,i(e,u))}},Ei=ho,_i=kr,Oi=z,Ai=function(t,e){if(mo&&"string"==typeof t)for(;e--;)t=vo(t,go,"");return t},ji=function(t,e){bo(e)&&"cause"in e&&wo(t,"cause",e.cause)},Pi=li,Ti=function(t,e){return void 0===t?arguments.length<2?"":e:di(t)},Mi=gi,Li=ge("toStringTag"),Ri=bi.Error,Ii=[].push,Ci=function(t,e){var r,n=arguments.length>2?arguments[2]:void 0,o=wi(Ui,this);Si?r=Si(new Ri,o?xi(this):Ui):(r=o?this:Ei(Ui),_i(r,Li,"Error")),void 0!==e&&_i(r,"message",Ti(e)),Mi&&_i(r,"stack",Ai(r.stack,1)),ji(r,n);var i=[];return Pi(t,Ii,{that:i}),_i(r,"errors",i),r};Si?Si(Ci,Ri):ki(Ci,Ri,{name:!0});var Ui=Ci.prototype=Ei(Ri.prototype,{constructor:Oi(1,Ci),message:Oi(1,""),name:Oi(1,"AggregateError")});mi({global:!0},{AggregateError:Ci});var Di=T,Ni=Kt,Fi=P(Function.toString);Di(Ni.inspectSource)||(Ni.inspectSource=function(t){return Fi(t)});var Gi,Vi,zi,Wi=Ni.inspectSource,Bi=T,Qi=Wi,Hi=y.WeakMap,qi=Bi(Hi)&&/native code/.test(Qi(Hi)),Ki=y,Yi=P,Ji=it,Xi=kr,$i=ee,Zi=Kt,ta=Fr,ea=kn,ra="Object already initialized",na=Ki.TypeError,oa=Ki.WeakMap;if(qi||Zi.state){var ia=Zi.state||(Zi.state=new oa),aa=Yi(ia.get),ua=Yi(ia.has),ca=Yi(ia.set);Gi=function(t,e){if(ua(ia,t))throw new na(ra);return e.facade=t,ca(ia,t,e),e},Vi=function(t){return aa(ia,t)||{}},zi=function(t){return ua(ia,t)}}else{var sa=ta("state");ea[sa]=!0,Gi=function(t,e){if($i(t,sa))throw new na(ra);return e.facade=t,Xi(t,sa,e),e},Vi=function(t){return $i(t,sa)?t[sa]:{}},zi=function(t){return $i(t,sa)}}var fa,la,pa,ha={set:Gi,get:Vi,has:zi,enforce:function(t){return zi(t)?Vi(t):Gi(t,{})},getterFor:function(t){return function(e){var r;if(!Ji(e)||(r=Vi(e)).type!==t)throw na("Incompatible receiver, "+t+" required");return r}}},va=L,da=ee,ya=Function.prototype,ga=va&&Object.getOwnPropertyDescriptor,ma=da(ya,"name"),ba={EXISTS:ma,PROPER:ma&&"something"===function(){}.name,CONFIGURABLE:ma&&(!va||va&&ga(ya,"name").configurable)},wa=kr,xa=function(t,e,r,n){n&&n.enumerable?t[e]=r:wa(t,e,r)},Sa=g,ka=T,Ea=ho,_a=Yr,Oa=xa,Aa=ge("iterator"),ja=!1;[].keys&&("next"in(pa=[].keys())?(la=_a(_a(pa)))!==Object.prototype&&(fa=la):ja=!0);var Pa=null==fa||Sa((function(){var t={};return fa[Aa].call(t)!==t}));ka((fa=Pa?{}:Ea(fa))[Aa])||Oa(fa,Aa,(function(){return this}));var Ta={IteratorPrototype:fa,BUGGY_SAFARI_ITERATORS:ja},Ma=Co,La=Ao?{}.toString:function(){return"[object "+Ma(this)+"]"},Ra=Ao,Ia=nr.f,Ca=kr,Ua=ee,Da=La,Na=ge("toStringTag"),Fa=function(t,e,r,n){if(t){var o=r?t:t.prototype;Ua(o,Na)||Ia(o,Na,{configurable:!0,value:e}),n&&!Ra&&Ca(o,"toString",Da)}},Ga=Ta.IteratorPrototype,Va=ho,za=z,Wa=Fa,Ba=xo,Qa=function(){return this},Ha=Cr,qa=C,Ka=function(t,e,r,n){var o=e+" Iterator";return t.prototype=Va(Ga,{next:za(+!n,r)}),Wa(t,o,!1,!0),Ba[o]=Qa,t},Ya=Yr,Ja=Fa,Xa=xa,$a=xo,Za=ba.PROPER,tu=Ta.BUGGY_SAFARI_ITERATORS,eu=ge("iterator"),ru="keys",nu="values",ou="entries",iu=function(){return this},au=function(t,e,r,n,o,i,a){Ka(r,e,n);var u,c,s,f=function(t){if(t===o&&d)return d;if(!tu&&t in h)return h[t];switch(t){case ru:case nu:case ou:return function(){return new r(this,t)}}return function(){return new r(this)}},l=e+" Iterator",p=!1,h=t.prototype,v=h[eu]||h["@@iterator"]||o&&h[o],d=!tu&&v||f(o),y="Array"==e&&h.entries||v;if(y&&(u=Ya(y.call(new t)))!==Object.prototype&&u.next&&(Ja(u,l,!0,!0),$a[l]=iu),Za&&o==nu&&v&&v.name!==nu&&(p=!0,d=function(){return qa(v,this)}),o)if(c={values:f(nu),keys:i?d:f(ru),entries:f(ou)},a)for(s in c)(tu||p||!(s in h))&&Xa(h,s,c[s]);else Ha({target:e,proto:!0,forced:tu||p},c);return a&&h[eu]!==d&&Xa(h,eu,d,{name:o}),$a[e]=d,c},uu=nt,cu=xo,su=ha;nr.f;var fu=au,lu="Array Iterator",pu=su.set,hu=su.getterFor(lu);fu(Array,"Array",(function(t,e){pu(this,{type:lu,target:uu(t),index:0,kind:e})}),(function(){var t=hu(this),e=t.target,r=t.kind,n=t.index++;return!e||n>=e.length?(t.target=void 0,{value:void 0,done:!0}):"keys"==r?{value:n,done:!1}:"values"==r?{value:e[n],done:!1}:{value:[n,e[n]],done:!1}}),"values"),cu.Arguments=cu.Array;var vu=y.Promise,du=xa,yu=function(t,e,r){for(var n in e)r&&r.unsafe&&t[n]?t[n]=e[n]:du(t,n,e[n],r);return t},gu=lt,mu=nr,bu=L,wu=ge("species"),xu=function(t){var e=gu(t),r=mu.f;bu&&e&&!e[wu]&&r(e,wu,{configurable:!0,get:function(){return this}})},Su=pt,ku=y.TypeError,Eu=function(t,e){if(Su(e,t))return t;throw ku("Incorrect invocation")},_u=ge("iterator"),Ou=!1;try{var Au=0,ju={next:function(){return{done:!!Au++}},return:function(){Ou=!0}};ju[_u]=function(){return this},Array.from(ju,(function(){throw 2}))}catch(t){}var Pu=function(t,e){if(!e&&!Ou)return!1;var r=!1;try{var n={};n[_u]=function(){return{next:function(){return{done:r=!0}}}},t(n)}catch(t){}return r},Tu=P,Mu=g,Lu=T,Ru=Co,Iu=Wi,Cu=function(){},Uu=[],Du=lt("Reflect","construct"),Nu=/^\s*(?:class|function)\b/,Fu=Tu(Nu.exec),Gu=!Nu.exec(Cu),Vu=function(t){if(!Lu(t))return!1;try{return Du(Cu,Uu,t),!0}catch(t){return!1}},zu=function(t){if(!Lu(t))return!1;switch(Ru(t)){case"AsyncFunction":case"GeneratorFunction":case"AsyncGeneratorFunction":return!1}try{return Gu||!!Fu(Nu,Iu(t))}catch(t){return!0}};zu.sham=!0;var Wu,Bu,Qu,Hu,qu=!Du||Mu((function(){var t;return Vu(Vu.call)||!Vu(Object)||!Vu((function(){t=!0}))||t}))?zu:Vu,Ku=qu,Yu=Lt,Ju=y.TypeError,Xu=sr,$u=function(t){if(Ku(t))return t;throw Ju(Yu(t)+" is not a constructor")},Zu=ge("species"),tc=function(t,e){var r,n=Xu(t).constructor;return void 0===n||null==(r=Xu(n)[Zu])?e:$u(r)},ec=P([].slice),rc=y.TypeError,nc=function(t,e){if(t<e)throw rc("Not enough arguments");return t},oc=/(?:ipad|iphone|ipod).*applewebkit/i.test(ht),ic="process"==H(y.process),ac=y,uc=k,cc=rr,sc=T,fc=ee,lc=g,pc=eo,hc=ec,vc=Le,dc=nc,yc=oc,gc=ic,mc=ac.setImmediate,bc=ac.clearImmediate,wc=ac.process,xc=ac.Dispatch,Sc=ac.Function,kc=ac.MessageChannel,Ec=ac.String,_c=0,Oc={},Ac="onreadystatechange";try{Wu=ac.location}catch(t){}var jc=function(t){if(fc(Oc,t)){var e=Oc[t];delete Oc[t],e()}},Pc=function(t){return function(){jc(t)}},Tc=function(t){jc(t.data)},Mc=function(t){ac.postMessage(Ec(t),Wu.protocol+"//"+Wu.host)};mc&&bc||(mc=function(t){dc(arguments.length,1);var e=sc(t)?t:Sc(t),r=hc(arguments,1);return Oc[++_c]=function(){uc(e,void 0,r)},Bu(_c),_c},bc=function(t){delete Oc[t]},gc?Bu=function(t){wc.nextTick(Pc(t))}:xc&&xc.now?Bu=function(t){xc.now(Pc(t))}:kc&&!yc?(Hu=(Qu=new kc).port2,Qu.port1.onmessage=Tc,Bu=cc(Hu.postMessage,Hu)):ac.addEventListener&&sc(ac.postMessage)&&!ac.importScripts&&Wu&&"file:"!==Wu.protocol&&!lc(Mc)?(Bu=Mc,ac.addEventListener("message",Tc,!1)):Bu=Ac in vc("script")?function(t){pc.appendChild(vc("script")).onreadystatechange=function(){pc.removeChild(this),jc(t)}}:function(t){setTimeout(Pc(t),0)});var Lc,Rc,Ic,Cc,Uc,Dc,Nc,Fc,Gc={set:mc,clear:bc},Vc=y,zc=/ipad|iphone|ipod/i.test(ht)&&void 0!==Vc.Pebble,Wc=/web0s(?!.*chrome)/i.test(ht),Bc=y,Qc=rr,Hc=M.f,qc=Gc.set,Kc=oc,Yc=zc,Jc=Wc,Xc=ic,$c=Bc.MutationObserver||Bc.WebKitMutationObserver,Zc=Bc.document,ts=Bc.process,es=Bc.Promise,rs=Hc(Bc,"queueMicrotask"),ns=rs&&rs.value;ns||(Lc=function(){var t,e;for(Xc&&(t=ts.domain)&&t.exit();Rc;){e=Rc.fn,Rc=Rc.next;try{e()}catch(t){throw Rc?Cc():Ic=void 0,t}}Ic=void 0,t&&t.enter()},Kc||Xc||Jc||!$c||!Zc?!Yc&&es&&es.resolve?((Nc=es.resolve(void 0)).constructor=es,Fc=Qc(Nc.then,Nc),Cc=function(){Fc(Lc)}):Xc?Cc=function(){ts.nextTick(Lc)}:(qc=Qc(qc,Bc),Cc=function(){qc(Lc)}):(Uc=!0,Dc=Zc.createTextNode(""),new $c(Lc).observe(Dc,{characterData:!0}),Cc=function(){Dc.data=Uc=!Uc}));var os=ns||function(t){var e={fn:t,next:void 0};Ic&&(Ic.next=e),Rc||(Rc=e,Cc()),Ic=e},is={},as=Ut,us=function(t){var e,r;this.promise=new t((function(t,n){if(void 0!==e||void 0!==r)throw TypeError("Bad Promise constructor");e=t,r=n})),this.resolve=as(e),this.reject=as(r)};is.f=function(t){return new us(t)};var cs=sr,ss=it,fs=is,ls=function(t,e){if(cs(t),ss(e)&&e.constructor===t)return e;var r=fs.f(t);return(0,r.resolve)(e),r.promise},ps=y,hs=function(t){try{return{error:!1,value:t()}}catch(t){return{error:!0,value:t}}},vs=function(){this.head=null,this.tail=null};vs.prototype={add:function(t){var e={item:t,next:null};this.head?this.tail.next=e:this.head=e,this.tail=e},get:function(){var t=this.head;if(t)return this.head=t.next,this.tail===t&&(this.tail=null),t.item}};var ds,ys,gs,ms="object"==typeof window,bs=Cr,ws=y,xs=lt,Ss=C,ks=vu,Es=yu,_s=Fa,Os=xu,As=Ut,js=T,Ps=it,Ts=Eu,Ms=Wi,Ls=li,Rs=Pu,Is=tc,Cs=Gc.set,Us=os,Ds=ls,Ns=function(t,e){var r=ps.console;r&&r.error&&(1==arguments.length?r.error(t):r.error(t,e))},Fs=is,Gs=hs,Vs=vs,zs=ha,Ws=$e,Bs=ms,Qs=ic,Hs=wt,qs=ge("species"),Ks="Promise",Ys=zs.getterFor(Ks),Js=zs.set,Xs=zs.getterFor(Ks),$s=ks&&ks.prototype,Zs=ks,tf=$s,ef=ws.TypeError,rf=ws.document,nf=ws.process,of=Fs.f,af=of,uf=!!(rf&&rf.createEvent&&ws.dispatchEvent),cf=js(ws.PromiseRejectionEvent),sf="unhandledrejection",ff=Ws(Ks,(function(){var t=Ms(Zs),e=t!==String(Zs);if(!e&&66===Hs)return!0;if(!tf.finally)return!0;if(Hs>=51&&/native code/.test(t))return!1;var r=new Zs((function(t){t(1)})),n=function(t){t((function(){}),(function(){}))};return(r.constructor={})[qs]=n,!(r.then((function(){}))instanceof n)||!e&&Bs&&!cf})),lf=ff||!Rs((function(t){Zs.all(t).catch((function(){}))})),pf=function(t){var e;return!(!Ps(t)||!js(e=t.then))&&e},hf=function(t,e){var r,n,o,i=e.value,a=1==e.state,u=a?t.ok:t.fail,c=t.resolve,s=t.reject,f=t.domain;try{u?(a||(2===e.rejection&&mf(e),e.rejection=1),!0===u?r=i:(f&&f.enter(),r=u(i),f&&(f.exit(),o=!0)),r===t.promise?s(ef("Promise-chain cycle")):(n=pf(r))?Ss(n,r,c,s):c(r)):s(i)}catch(t){f&&!o&&f.exit(),s(t)}},vf=function(t,e){t.notified||(t.notified=!0,Us((function(){for(var r,n=t.reactions;r=n.get();)hf(r,t);t.notified=!1,e&&!t.rejection&&yf(t)})))},df=function(t,e,r){var n,o;uf?((n=rf.createEvent("Event")).promise=e,n.reason=r,n.initEvent(t,!1,!0),ws.dispatchEvent(n)):n={promise:e,reason:r},!cf&&(o=ws["on"+t])?o(n):t===sf&&Ns("Unhandled promise rejection",r)},yf=function(t){Ss(Cs,ws,(function(){var e,r=t.facade,n=t.value;if(gf(t)&&(e=Gs((function(){Qs?nf.emit("unhandledRejection",n,r):df(sf,r,n)})),t.rejection=Qs||gf(t)?2:1,e.error))throw e.value}))},gf=function(t){return 1!==t.rejection&&!t.parent},mf=function(t){Ss(Cs,ws,(function(){var e=t.facade;Qs?nf.emit("rejectionHandled",e):df("rejectionhandled",e,t.value)}))},bf=function(t,e,r){return function(n){t(e,n,r)}},wf=function(t,e,r){t.done||(t.done=!0,r&&(t=r),t.value=e,t.state=2,vf(t,!0))},xf=function(t,e,r){if(!t.done){t.done=!0,r&&(t=r);try{if(t.facade===e)throw ef("Promise can't be resolved itself");var n=pf(e);n?Us((function(){var r={done:!1};try{Ss(n,e,bf(xf,r,t),bf(wf,r,t))}catch(e){wf(r,e,t)}})):(t.value=e,t.state=1,vf(t,!1))}catch(e){wf({done:!1},e,t)}}};ff&&(tf=(Zs=function(t){Ts(this,tf),As(t),Ss(ds,this);var e=Ys(this);try{t(bf(xf,e),bf(wf,e))}catch(t){wf(e,t)}}).prototype,(ds=function(t){Js(this,{type:Ks,done:!1,notified:!1,parent:!1,reactions:new Vs,rejection:!1,state:0,value:void 0})}).prototype=Es(tf,{then:function(t,e){var r=Xs(this),n=of(Is(this,Zs));return r.parent=!0,n.ok=!js(t)||t,n.fail=js(e)&&e,n.domain=Qs?nf.domain:void 0,0==r.state?r.reactions.add(n):Us((function(){hf(n,r)})),n.promise},catch:function(t){return this.then(void 0,t)}}),ys=function(){var t=new ds,e=Ys(t);this.promise=t,this.resolve=bf(xf,e),this.reject=bf(wf,e)},Fs.f=of=function(t){return t===Zs||t===gs?new ys(t):af(t)}),bs({global:!0,wrap:!0,forced:ff},{Promise:Zs}),_s(Zs,Ks,!1,!0),Os(Ks),gs=xs(Ks),bs({target:Ks,stat:!0,forced:ff},{reject:function(t){var e=of(this);return Ss(e.reject,void 0,t),e.promise}}),bs({target:Ks,stat:!0,forced:true},{resolve:function(t){return Ds(this===gs?Zs:this,t)}}),bs({target:Ks,stat:!0,forced:lf},{all:function(t){var e=this,r=of(e),n=r.resolve,o=r.reject,i=Gs((function(){var r=As(e.resolve),i=[],a=0,u=1;Ls(t,(function(t){var c=a++,s=!1;u++,Ss(r,e,t).then((function(t){s||(s=!0,i[c]=t,--u||n(i))}),o)})),--u||n(i)}));return i.error&&o(i.value),r.promise},race:function(t){var e=this,r=of(e),n=r.reject,o=Gs((function(){var o=As(e.resolve);Ls(t,(function(t){Ss(o,e,t).then(r.resolve,n)}))}));return o.error&&n(o.value),r.promise}});var Sf=C,kf=Ut,Ef=is,_f=hs,Of=li;Cr({target:"Promise",stat:!0},{allSettled:function(t){var e=this,r=Ef.f(e),n=r.resolve,o=r.reject,i=_f((function(){var r=kf(e.resolve),o=[],i=0,a=1;Of(t,(function(t){var u=i++,c=!1;a++,Sf(r,e,t).then((function(t){c||(c=!0,o[u]={status:"fulfilled",value:t},--a||n(o))}),(function(t){c||(c=!0,o[u]={status:"rejected",reason:t},--a||n(o))}))})),--a||n(o)}));return i.error&&o(i.value),r.promise}});var Af=Ut,jf=lt,Pf=C,Tf=is,Mf=hs,Lf=li,Rf="No one promise resolved";Cr({target:"Promise",stat:!0},{any:function(t){var e=this,r=jf("AggregateError"),n=Tf.f(e),o=n.resolve,i=n.reject,a=Mf((function(){var n=Af(e.resolve),a=[],u=0,c=1,s=!1;Lf(t,(function(t){var f=u++,l=!1;c++,Pf(n,e,t).then((function(t){l||s||(s=!0,o(t))}),(function(t){l||s||(l=!0,a[f]=t,--c||i(new r(a,Rf)))}))})),--c||i(new r(a,Rf))}));return a.error&&i(a.value),n.promise}});var If=vu,Cf=lt,Uf=T,Df=tc,Nf=ls;Cr({target:"Promise",proto:!0,real:!0,forced:!!If&&g((function(){If.prototype.finally.call({then:function(){}},(function(){}))}))},{finally:function(t){var e=Df(this,Cf("Promise")),r=Uf(t);return this.then(r?function(r){return Nf(e,t()).then((function(){return r}))}:t,r?function(r){return Nf(e,t()).then((function(){throw r}))}:t)}});var Ff=P,Gf=cn,Vf=vi,zf=tt,Wf=Ff("".charAt),Bf=Ff("".charCodeAt),Qf=Ff("".slice),Hf=function(t){return function(e,r){var n,o,i=Vf(zf(e)),a=Gf(r),u=i.length;return a<0||a>=u?t?"":void 0:(n=Bf(i,a))<55296||n>56319||a+1===u||(o=Bf(i,a+1))<56320||o>57343?t?Wf(i,a):n:t?Qf(i,a,a+2):o-56320+(n-55296<<10)+65536}},qf={codeAt:Hf(!1),charAt:Hf(!0)}.charAt,Kf=vi,Yf=ha,Jf=au,Xf="String Iterator",$f=Yf.set,Zf=Yf.getterFor(Xf);Jf(String,"String",(function(t){$f(this,{type:Xf,string:Kf(t),index:0})}),(function(){var t,e=Zf(this),r=e.string,n=e.index;return n>=r.length?{value:void 0,done:!0}:(t=qf(r,n),e.index+=t.length,{value:t,done:!1})}));var tl=at.Promise,el={CSSRuleList:0,CSSStyleDeclaration:0,CSSValueList:0,ClientRectList:0,DOMRectList:0,DOMStringList:0,DOMTokenList:1,DataTransferItemList:0,FileList:0,HTMLAllCollection:0,HTMLCollection:0,HTMLFormElement:0,HTMLSelectElement:0,MediaList:0,MimeTypeArray:0,NamedNodeMap:0,NodeList:1,PaintRequestList:0,Plugin:0,PluginArray:0,SVGLengthList:0,SVGNumberList:0,SVGPathSegList:0,SVGPointList:0,SVGStringList:0,SVGTransformList:0,SourceBufferList:0,StyleSheetList:0,TextTrackCueList:0,TextTrackList:0,TouchList:0},rl=y,nl=Co,ol=kr,il=xo,al=ge("toStringTag");for(var ul in el){var cl=rl[ul],sl=cl&&cl.prototype;sl&&nl(sl)!==al&&ol(sl,al,ul),il[ul]=il.Array}var fl=tl;!function(t){t.exports=fl}(v);var ll=h(v.exports),pl={exports:{}},hl={exports:{}},vl={exports:{}},dl=H,yl=Array.isArray||function(t){return"Array"==dl(t)},gl=je,ml=nr,bl=z,wl=function(t,e,r){var n=gl(e);n in t?ml.f(t,n,bl(0,r)):t[n]=r},xl=y,Sl=yl,kl=qu,El=it,_l=ge("species"),Ol=xl.Array,Al=function(t){var e;return Sl(t)&&(e=t.constructor,(kl(e)&&(e===Ol||Sl(e.prototype))||El(e)&&null===(e=e[_l]))&&(e=void 0)),void 0===e?Ol:e},jl=function(t,e){return new(Al(t))(0===e?0:e)},Pl=g,Tl=wt,Ml=ge("species"),Ll=function(t){return Tl>=51||!Pl((function(){var e=[];return(e.constructor={})[Ml]=function(){return{foo:1}},1!==e[t](Boolean).foo}))},Rl=Cr,Il=y,Cl=g,Ul=yl,Dl=it,Nl=$t,Fl=gn,Gl=wl,Vl=jl,zl=Ll,Wl=wt,Bl=ge("isConcatSpreadable"),Ql=9007199254740991,Hl="Maximum allowed index exceeded",ql=Il.TypeError,Kl=Wl>=51||!Cl((function(){var t=[];return t[Bl]=!1,t.concat()[0]!==t})),Yl=zl("concat"),Jl=function(t){if(!Dl(t))return!1;var e=t[Bl];return void 0!==e?!!e:Ul(t)};Rl({target:"Array",proto:!0,forced:!Kl||!Yl},{concat:function(t){var e,r,n,o,i,a=Nl(this),u=Vl(a,0),c=0;for(e=-1,n=arguments.length;e<n;e++)if(Jl(i=-1===e?a:arguments[e])){if(c+(o=Fl(i))>Ql)throw ql(Hl);for(r=0;r<o;r++,c++)r in i&&Gl(u,c,i[r])}else{if(c>=Ql)throw ql(Hl);Gl(u,c++,i)}return u.length=c,u}});var Xl={},$l=pn,Zl=gn,tp=wl,ep=y.Array,rp=Math.max,np=H,op=nt,ip=on.f,ap=function(t,e,r){for(var n=Zl(t),o=$l(e,n),i=$l(void 0===r?n:r,n),a=ep(rp(i-o,0)),u=0;o<i;o++,u++)tp(a,u,t[o]);return a.length=u,a},up="object"==typeof window&&window&&Object.getOwnPropertyNames?Object.getOwnPropertyNames(window):[];Xl.f=function(t){return up&&"Window"==np(t)?function(t){try{return ip(t)}catch(t){return ap(up)}}(t):ip(op(t))};var cp={},sp=ge;cp.f=sp;var fp=at,lp=ee,pp=cp,hp=nr.f,vp=function(t){var e=fp.Symbol||(fp.Symbol={});lp(e,t)||hp(e,t,{value:pp.f(t)})},dp=rr,yp=$,gp=$t,mp=gn,bp=jl,wp=P([].push),xp=function(t){var e=1==t,r=2==t,n=3==t,o=4==t,i=6==t,a=7==t,u=5==t||i;return function(c,s,f,l){for(var p,h,v=gp(c),d=yp(v),y=dp(s,f),g=mp(d),m=0,b=l||bp,w=e?b(c,g):r||a?b(c,0):void 0;g>m;m++)if((u||m in d)&&(h=y(p=d[m],m,v),t))if(e)w[m]=h;else if(h)switch(t){case 3:return!0;case 5:return p;case 6:return m;case 2:wp(w,p)}else switch(t){case 4:return!1;case 7:wp(w,p)}return i?-1:n||o?o:w}},Sp={forEach:xp(0),map:xp(1),filter:xp(2),some:xp(3),every:xp(4),find:xp(5),findIndex:xp(6),filterReject:xp(7)},kp=Cr,Ep=y,_p=lt,Op=k,Ap=C,jp=P,Pp=L,Tp=kt,Mp=g,Lp=ee,Rp=yl,Ip=T,Cp=it,Up=pt,Dp=Tt,Np=sr,Fp=$t,Gp=nt,Vp=je,zp=vi,Wp=z,Bp=ho,Qp=qn,Hp=on,qp=Xl,Kp=Rn,Yp=M,Jp=nr,Xp=Bn,$p=U,Zp=ec,th=xa,eh=Wt.exports,rh=kn,nh=ae,oh=ge,ih=cp,ah=vp,uh=Fa,ch=ha,sh=Sp.forEach,fh=Fr("hidden"),lh="Symbol",ph=oh("toPrimitive"),hh=ch.set,vh=ch.getterFor(lh),dh=Object.prototype,yh=Ep.Symbol,gh=yh&&yh.prototype,mh=Ep.TypeError,bh=Ep.QObject,wh=_p("JSON","stringify"),xh=Yp.f,Sh=Jp.f,kh=qp.f,Eh=$p.f,_h=jp([].push),Oh=eh("symbols"),Ah=eh("op-symbols"),jh=eh("string-to-symbol-registry"),Ph=eh("symbol-to-string-registry"),Th=eh("wks"),Mh=!bh||!bh.prototype||!bh.prototype.findChild,Lh=Pp&&Mp((function(){return 7!=Bp(Sh({},"a",{get:function(){return Sh(this,"a",{value:7}).a}})).a}))?function(t,e,r){var n=xh(dh,e);n&&delete dh[e],Sh(t,e,r),n&&t!==dh&&Sh(dh,e,n)}:Sh,Rh=function(t,e){var r=Oh[t]=Bp(gh);return hh(r,{type:lh,tag:t,description:e}),Pp||(r.description=e),r},Ih=function(t,e,r){t===dh&&Ih(Ah,e,r),Np(t);var n=Vp(e);return Np(r),Lp(Oh,n)?(r.enumerable?(Lp(t,fh)&&t[fh][n]&&(t[fh][n]=!1),r=Bp(r,{enumerable:Wp(0,!1)})):(Lp(t,fh)||Sh(t,fh,Wp(1,{})),t[fh][n]=!0),Lh(t,n,r)):Sh(t,n,r)},Ch=function(t,e){Np(t);var r=Gp(e),n=Qp(r).concat(Fh(r));return sh(n,(function(e){Pp&&!Ap(Uh,r,e)||Ih(t,e,r[e])})),t},Uh=function(t){var e=Vp(t),r=Ap(Eh,this,e);return!(this===dh&&Lp(Oh,e)&&!Lp(Ah,e))&&(!(r||!Lp(this,e)||!Lp(Oh,e)||Lp(this,fh)&&this[fh][e])||r)},Dh=function(t,e){var r=Gp(t),n=Vp(e);if(r!==dh||!Lp(Oh,n)||Lp(Ah,n)){var o=xh(r,n);return!o||!Lp(Oh,n)||Lp(r,fh)&&r[fh][n]||(o.enumerable=!0),o}},Nh=function(t){var e=kh(Gp(t)),r=[];return sh(e,(function(t){Lp(Oh,t)||Lp(rh,t)||_h(r,t)})),r},Fh=function(t){var e=t===dh,r=kh(e?Ah:Gp(t)),n=[];return sh(r,(function(t){!Lp(Oh,t)||e&&!Lp(dh,t)||_h(n,Oh[t])})),n};if(Tp||(yh=function(){if(Up(gh,this))throw mh("Symbol is not a constructor");var t=arguments.length&&void 0!==arguments[0]?zp(arguments[0]):void 0,e=nh(t),r=function(t){this===dh&&Ap(r,Ah,t),Lp(this,fh)&&Lp(this[fh],e)&&(this[fh][e]=!1),Lh(this,e,Wp(1,t))};return Pp&&Mh&&Lh(dh,e,{configurable:!0,set:r}),Rh(e,t)},th(gh=yh.prototype,"toString",(function(){return vh(this).tag})),th(yh,"withoutSetter",(function(t){return Rh(nh(t),t)})),$p.f=Uh,Jp.f=Ih,Xp.f=Ch,Yp.f=Dh,Hp.f=qp.f=Nh,Kp.f=Fh,ih.f=function(t){return Rh(oh(t),t)},Pp&&Sh(gh,"description",{configurable:!0,get:function(){return vh(this).description}})),kp({global:!0,wrap:!0,forced:!Tp,sham:!Tp},{Symbol:yh}),sh(Qp(Th),(function(t){ah(t)})),kp({target:lh,stat:!0,forced:!Tp},{for:function(t){var e=zp(t);if(Lp(jh,e))return jh[e];var r=yh(e);return jh[e]=r,Ph[r]=e,r},keyFor:function(t){if(!Dp(t))throw mh(t+" is not a symbol");if(Lp(Ph,t))return Ph[t]},useSetter:function(){Mh=!0},useSimple:function(){Mh=!1}}),kp({target:"Object",stat:!0,forced:!Tp,sham:!Pp},{create:function(t,e){return void 0===e?Bp(t):Ch(Bp(t),e)},defineProperty:Ih,defineProperties:Ch,getOwnPropertyDescriptor:Dh}),kp({target:"Object",stat:!0,forced:!Tp},{getOwnPropertyNames:Nh,getOwnPropertySymbols:Fh}),kp({target:"Object",stat:!0,forced:Mp((function(){Kp.f(1)}))},{getOwnPropertySymbols:function(t){return Kp.f(Fp(t))}}),wh){var Gh=!Tp||Mp((function(){var t=yh();return"[null]"!=wh([t])||"{}"!=wh({a:t})||"{}"!=wh(Object(t))}));kp({target:"JSON",stat:!0,forced:Gh},{stringify:function(t,e,r){var n=Zp(arguments),o=e;if((Cp(e)||void 0!==t)&&!Dp(t))return Rp(e)||(e=function(t,e){if(Ip(o)&&(e=Ap(o,this,t,e)),!Dp(e))return e}),n[1]=e,Op(wh,null,n)}})}if(!gh[ph]){var Vh=gh.valueOf;th(gh,ph,(function(t){return Ap(Vh,this)}))}uh(yh,lh),rh[fh]=!0,vp("asyncIterator"),vp("hasInstance"),vp("isConcatSpreadable"),vp("iterator"),vp("match"),vp("matchAll"),vp("replace"),vp("search"),vp("species"),vp("split"),vp("toPrimitive"),vp("toStringTag"),vp("unscopables"),Fa(y.JSON,"JSON",!0);var zh=at.Symbol;vp("asyncDispose"),vp("dispose"),vp("matcher"),vp("metadata"),vp("observable"),vp("patternMatch"),vp("replaceAll");var Wh=zh;!function(t){t.exports=Wh}(vl);var Bh={exports:{}},Qh=cp.f("iterator");!function(t){t.exports=Qh}(Bh),function(t){var e=vl.exports,r=Bh.exports;function n(o){return t.exports=n="function"==typeof e&&"symbol"==typeof r?function(t){return typeof t}:function(t){return t&&"function"==typeof e&&t.constructor===e&&t!==e.prototype?"symbol":typeof t},t.exports.__esModule=!0,t.exports.default=t.exports,n(o)}t.exports=n,t.exports.__esModule=!0,t.exports.default=t.exports}(hl);var Hh={exports:{}},qh={exports:{}},Kh=Cr,Yh=L,Jh=nr.f;Kh({target:"Object",stat:!0,forced:Object.defineProperty!==Jh,sham:!Yh},{defineProperty:Jh});var Xh=at.Object,$h=qh.exports=function(t,e,r){return Xh.defineProperty(t,e,r)};Xh.defineProperty.sham&&($h.sham=!0);var Zh=qh.exports;!function(t){t.exports=Zh}(Hh);var tv={exports:{}};Cr({target:"Object",stat:!0,sham:!L},{create:ho});var ev=at.Object,rv=function(t,e){return ev.create(t,e)};!function(t){t.exports=rv}(tv);var nv={exports:{}},ov=$t,iv=Yr,av=Gr;Cr({target:"Object",stat:!0,forced:g((function(){iv(1)})),sham:!av},{getPrototypeOf:function(t){return iv(ov(t))}});var uv=at.Object.getPrototypeOf;!function(t){t.exports=uv}(nv);var cv={exports:{}},sv=g,fv=function(t,e){var r=[][t];return!!r&&sv((function(){r.call(null,e||function(){throw 1},1)}))},lv=Sp.forEach,pv=fv("forEach")?[].forEach:function(t){return lv(this,t,arguments.length>1?arguments[1]:void 0)};Cr({target:"Array",proto:!0,forced:[].forEach!=pv},{forEach:pv});var hv=at,vv=function(t){return hv[t+"Prototype"]},dv=vv("Array").forEach,yv=Co,gv=ee,mv=pt,bv=dv,wv=Array.prototype,xv={DOMTokenList:!0,NodeList:!0},Sv=function(t){var e=t.forEach;return t===wv||mv(wv,t)&&e===wv.forEach||gv(xv,yv(t))?bv:e},kv=Sv;!function(t){t.exports=kv}(cv);var Ev={exports:{}};Cr({target:"Object",stat:!0},{setPrototypeOf:nn});var _v=at.Object.setPrototypeOf;!function(t){t.exports=_v}(Ev);var Ov={exports:{}},Av=fl,jv=is,Pv=hs;Cr({target:"Promise",stat:!0,forced:!0},{try:function(t){var e=jv.f(this),r=Pv(t);return(r.error?e.reject:e.resolve)(r.value),e.promise}});var Tv=Av;!function(t){t.exports=Tv}(Ov);var Mv={exports:{}},Lv=Cr,Rv=yl,Iv=P([].reverse),Cv=[1,2];Lv({target:"Array",proto:!0,forced:String(Cv)===String(Cv.reverse())},{reverse:function(){return Rv(this)&&(this.length=this.length),Iv(this)}});var Uv=vv("Array").reverse,Dv=pt,Nv=Uv,Fv=Array.prototype,Gv=function(t){var e=t.reverse;return t===Fv||Dv(Fv,t)&&e===Fv.reverse?Nv:e};!function(t){t.exports=Gv}(Mv);var Vv={exports:{}},zv=Cr,Wv=y,Bv=yl,Qv=qu,Hv=it,qv=pn,Kv=gn,Yv=nt,Jv=wl,Xv=ge,$v=ec,Zv=Ll("slice"),td=Xv("species"),ed=Wv.Array,rd=Math.max;zv({target:"Array",proto:!0,forced:!Zv},{slice:function(t,e){var r,n,o,i=Yv(this),a=Kv(i),u=qv(t,a),c=qv(void 0===e?a:e,a);if(Bv(i)&&(r=i.constructor,(Qv(r)&&(r===ed||Bv(r.prototype))||Hv(r)&&null===(r=r[td]))&&(r=void 0),r===ed||void 0===r))return $v(i,u,c);for(n=new(void 0===r?ed:r)(rd(c-u,0)),o=0;u<c;u++,o++)u in i&&Jv(n,o,i[u]);return n.length=o,n}});var nd=vv("Array").slice,od=pt,id=nd,ad=Array.prototype,ud=function(t){var e=t.slice;return t===ad||od(ad,t)&&e===ad.slice?id:e},cd=ud;!function(t){t.exports=cd}(Vv),function(t){var e=hl.exports.default,r=vl.exports,n=Hh.exports,o=tv.exports,i=nv.exports,a=cv.exports,u=Ev.exports,c=Ov.exports,s=Mv.exports,f=Vv.exports;function l(){t.exports=l=function(){return p},t.exports.__esModule=!0,t.exports.default=t.exports;var p={},h=Object.prototype,v=h.hasOwnProperty,d="function"==typeof r?r:{},y=d.iterator||"@@iterator",g=d.asyncIterator||"@@asyncIterator",m=d.toStringTag||"@@toStringTag";function b(t,e,r){return n(t,e,{value:r,enumerable:!0,configurable:!0,writable:!0}),t[e]}try{b({},"")}catch(t){b=function(t,e,r){return t[e]=r}}function w(t,e,r,n){var i=e&&e.prototype instanceof k?e:k,a=o(i.prototype),u=new I(n||[]);return a._invoke=function(t,e,r){var n="suspendedStart";return function(o,i){if("executing"===n)throw new Error("Generator is already running");if("completed"===n){if("throw"===o)throw i;return U()}for(r.method=o,r.arg=i;;){var a=r.delegate;if(a){var u=M(a,r);if(u){if(u===S)continue;return u}}if("next"===r.method)r.sent=r._sent=r.arg;else if("throw"===r.method){if("suspendedStart"===n)throw n="completed",r.arg;r.dispatchException(r.arg)}else"return"===r.method&&r.abrupt("return",r.arg);n="executing";var c=x(t,e,r);if("normal"===c.type){if(n=r.done?"completed":"suspendedYield",c.arg===S)continue;return{value:c.arg,done:r.done}}"throw"===c.type&&(n="completed",r.method="throw",r.arg=c.arg)}}}(t,r,u),a}function x(t,e,r){try{return{type:"normal",arg:t.call(e,r)}}catch(t){return{type:"throw",arg:t}}}p.wrap=w;var S={};function k(){}function E(){}function _(){}var O={};b(O,y,(function(){return this}));var A=i&&i(i(C([])));A&&A!==h&&v.call(A,y)&&(O=A);var j=_.prototype=k.prototype=o(O);function P(t){var e;a(e=["next","throw","return"]).call(e,(function(e){b(t,e,(function(t){return this._invoke(e,t)}))}))}function T(t,r){function n(o,i,a,u){var c=x(t[o],t,i);if("throw"!==c.type){var s=c.arg,f=s.value;return f&&"object"==e(f)&&v.call(f,"__await")?r.resolve(f.__await).then((function(t){n("next",t,a,u)}),(function(t){n("throw",t,a,u)})):r.resolve(f).then((function(t){s.value=t,a(s)}),(function(t){return n("throw",t,a,u)}))}u(c.arg)}var o;this._invoke=function(t,e){function i(){return new r((function(r,o){n(t,e,r,o)}))}return o=o?o.then(i,i):i()}}function M(t,e){var r=t.iterator[e.method];if(void 0===r){if(e.delegate=null,"throw"===e.method){if(t.iterator.return&&(e.method="return",e.arg=void 0,M(t,e),"throw"===e.method))return S;e.method="throw",e.arg=new TypeError("The iterator does not provide a 'throw' method")}return S}var n=x(r,t.iterator,e.arg);if("throw"===n.type)return e.method="throw",e.arg=n.arg,e.delegate=null,S;var o=n.arg;return o?o.done?(e[t.resultName]=o.value,e.next=t.nextLoc,"return"!==e.method&&(e.method="next",e.arg=void 0),e.delegate=null,S):o:(e.method="throw",e.arg=new TypeError("iterator result is not an object"),e.delegate=null,S)}function L(t){var e={tryLoc:t[0]};1 in t&&(e.catchLoc=t[1]),2 in t&&(e.finallyLoc=t[2],e.afterLoc=t[3]),this.tryEntries.push(e)}function R(t){var e=t.completion||{};e.type="normal",delete e.arg,t.completion=e}function I(t){this.tryEntries=[{tryLoc:"root"}],a(t).call(t,L,this),this.reset(!0)}function C(t){if(t){var e=t[y];if(e)return e.call(t);if("function"==typeof t.next)return t;if(!isNaN(t.length)){var r=-1,n=function e(){for(;++r<t.length;)if(v.call(t,r))return e.value=t[r],e.done=!1,e;return e.value=void 0,e.done=!0,e};return n.next=n}}return{next:U}}function U(){return{value:void 0,done:!0}}return E.prototype=_,b(j,"constructor",_),b(_,"constructor",E),E.displayName=b(_,m,"GeneratorFunction"),p.isGeneratorFunction=function(t){var e="function"==typeof t&&t.constructor;return!!e&&(e===E||"GeneratorFunction"===(e.displayName||e.name))},p.mark=function(t){return u?u(t,_):(t.__proto__=_,b(t,m,"GeneratorFunction")),t.prototype=o(j),t},p.awrap=function(t){return{__await:t}},P(T.prototype),b(T.prototype,g,(function(){return this})),p.AsyncIterator=T,p.async=function(t,e,r,n,o){void 0===o&&(o=c);var i=new T(w(t,e,r,n),o);return p.isGeneratorFunction(e)?i:i.next().then((function(t){return t.done?t.value:i.next()}))},P(j),b(j,m,"Generator"),b(j,y,(function(){return this})),b(j,"toString",(function(){return"[object Generator]"})),p.keys=function(t){var e=[];for(var r in t)e.push(r);return s(e).call(e),function r(){for(;e.length;){var n=e.pop();if(n in t)return r.value=n,r.done=!1,r}return r.done=!0,r}},p.values=C,I.prototype={constructor:I,reset:function(t){var e;if(this.prev=0,this.next=0,this.sent=this._sent=void 0,this.done=!1,this.delegate=null,this.method="next",this.arg=void 0,a(e=this.tryEntries).call(e,R),!t)for(var r in this)"t"===r.charAt(0)&&v.call(this,r)&&!isNaN(+f(r).call(r,1))&&(this[r]=void 0)},stop:function(){this.done=!0;var t=this.tryEntries[0].completion;if("throw"===t.type)throw t.arg;return this.rval},dispatchException:function(t){if(this.done)throw t;var e=this;function r(r,n){return i.type="throw",i.arg=t,e.next=r,n&&(e.method="next",e.arg=void 0),!!n}for(var n=this.tryEntries.length-1;n>=0;--n){var o=this.tryEntries[n],i=o.completion;if("root"===o.tryLoc)return r("end");if(o.tryLoc<=this.prev){var a=v.call(o,"catchLoc"),u=v.call(o,"finallyLoc");if(a&&u){if(this.prev<o.catchLoc)return r(o.catchLoc,!0);if(this.prev<o.finallyLoc)return r(o.finallyLoc)}else if(a){if(this.prev<o.catchLoc)return r(o.catchLoc,!0)}else{if(!u)throw new Error("try statement without catch or finally");if(this.prev<o.finallyLoc)return r(o.finallyLoc)}}}},abrupt:function(t,e){for(var r=this.tryEntries.length-1;r>=0;--r){var n=this.tryEntries[r];if(n.tryLoc<=this.prev&&v.call(n,"finallyLoc")&&this.prev<n.finallyLoc){var o=n;break}}o&&("break"===t||"continue"===t)&&o.tryLoc<=e&&e<=o.finallyLoc&&(o=null);var i=o?o.completion:{};return i.type=t,i.arg=e,o?(this.method="next",this.next=o.finallyLoc,S):this.complete(i)},complete:function(t,e){if("throw"===t.type)throw t.arg;return"break"===t.type||"continue"===t.type?this.next=t.arg:"return"===t.type?(this.rval=this.arg=t.arg,this.method="return",this.next="end"):"normal"===t.type&&e&&(this.next=e),S},finish:function(t){for(var e=this.tryEntries.length-1;e>=0;--e){var r=this.tryEntries[e];if(r.finallyLoc===t)return this.complete(r.completion,r.afterLoc),R(r),S}},catch:function(t){for(var e=this.tryEntries.length-1;e>=0;--e){var r=this.tryEntries[e];if(r.tryLoc===t){var n=r.completion;if("throw"===n.type){var o=n.arg;R(r)}return o}}throw new Error("illegal catch attempt")},delegateYield:function(t,e,r){return this.delegate={iterator:C(t),resultName:e,nextLoc:r},"next"===this.method&&(this.arg=void 0),S}},p}t.exports=l,t.exports.__esModule=!0,t.exports.default=t.exports}(pl);var sd=pl.exports(),fd=sd;try{regeneratorRuntime=sd}catch(t){"object"==typeof globalThis?globalThis.regeneratorRuntime=sd:Function("r","regeneratorRuntime = r")(sd)}var ld={exports:{}},pd=Sp.filter;Cr({target:"Array",proto:!0,forced:!Ll("filter")},{filter:function(t){return pd(this,t,arguments.length>1?arguments[1]:void 0)}});var hd=vv("Array").filter,vd=pt,dd=hd,yd=Array.prototype,gd=function(t){var e=t.filter;return t===yd||vd(yd,t)&&e===yd.filter?dd:e};!function(t){t.exports=gd}(ld);var md=h(ld.exports),bd={exports:{}};!function(t){t.exports=Sv}(bd);var wd=h(bd.exports),xd={exports:{}},Sd=Cr,kd=Sp.find,Ed="find",_d=!0;Ed in[]&&Array(1).find((function(){_d=!1})),Sd({target:"Array",proto:!0,forced:_d},{find:function(t){return kd(this,t,arguments.length>1?arguments[1]:void 0)}});var Od=vv("Array").find,Ad=pt,jd=Od,Pd=Array.prototype,Td=function(t){var e=t.find;return t===Pd||Ad(Pd,t)&&e===Pd.find?jd:e};!function(t){t.exports=Td}(xd);var Md=h(xd.exports),Ld={exports:{}},Rd=Cr,Id=y,Cd=k,Ud=T,Dd=ec,Nd=nc,Fd=/MSIE .\./.test(ht),Gd=Id.Function,Vd=function(t){return function(e,r){var n=Nd(arguments.length,1)>2,o=Ud(e)?e:Gd(e),i=n?Dd(arguments,2):void 0;return t(n?function(){Cd(o,this,i)}:o,r)}};Rd({global:!0,bind:!0,forced:Fd},{setTimeout:Vd(Id.setTimeout),setInterval:Vd(Id.setInterval)});var zd=at.setInterval;!function(t){t.exports=zd}(Ld);var Wd=h(Ld.exports),Bd={exports:{}};!function(t){t.exports=ud}(Bd);var Qd=h(Bd.exports),Hd={exports:{}},qd=vv("Array").concat,Kd=pt,Yd=qd,Jd=Array.prototype,Xd=function(t){var e=t.concat;return t===Jd||Kd(Jd,t)&&e===Jd.concat?Yd:e};!function(t){t.exports=Xd}(Hd);var $d=h(Hd.exports),Zd={exports:{}},ty=at.setTimeout;!function(t){t.exports=ty}(Zd);var ey=h(Zd.exports),ry=new Uint8Array([88,0,0,0]),ny=new Uint8Array([26,165,74,6,73,7,72,8,71,9,70,10,69,11,68,12,67,13,66,14,65]),oy=new Uint8Array([24,255,1,0,0,0,0,0,0,0,0,0,0,0,0]),iy=new Uint8Array([25,255,0,255,255,255,255]),ay=new Uint8Array([27,255,0,0,0,0,0,0,0,0,0]),uy={HEADER:ry,INIT:ny,DISCONNECT:new Uint8Array([84]),START_MEASUREMENTS:oy,STOP_MEASUREMENTS:iy,SET_MEASUREMENT_PERIOD:ay,GET_INFO:new Uint8Array([85]),GET_STATUS:new Uint8Array([16]),GET_SENSOR_IDS:new Uint8Array([81]),GET_SENSOR_INFO:new Uint8Array([80,0]),GET_DEFAULT_SENSORS_MASK:new Uint8Array([86])},cy=6,sy=7,fy=10,ly=8,py=9,hy=11,vy=12,dy=13,yy=14,gy=32,my={exports:{}},by={exports:{}},wy=g((function(){if("function"==typeof ArrayBuffer){var t=new ArrayBuffer(8);Object.isExtensible(t)&&Object.defineProperty(t,"a",{value:8})}})),xy=g,Sy=it,ky=H,Ey=wy,_y=Object.isExtensible,Oy=xy((function(){_y(1)}))||Ey?function(t){return!!Sy(t)&&((!Ey||"ArrayBuffer"!=ky(t))&&(!_y||_y(t)))}:_y,Ay=!g((function(){return Object.isExtensible(Object.preventExtensions({}))})),jy=Cr,Py=P,Ty=kn,My=it,Ly=ee,Ry=nr.f,Iy=on,Cy=Xl,Uy=Oy,Dy=Ay,Ny=!1,Fy=ae("meta"),Gy=0,Vy=function(t){Ry(t,Fy,{value:{objectID:"O"+Gy++,weakData:{}}})},zy=by.exports={enable:function(){zy.enable=function(){},Ny=!0;var t=Iy.f,e=Py([].splice),r={};r[Fy]=1,t(r).length&&(Iy.f=function(r){for(var n=t(r),o=0,i=n.length;o<i;o++)if(n[o]===Fy){e(n,o,1);break}return n},jy({target:"Object",stat:!0,forced:!0},{getOwnPropertyNames:Cy.f}))},fastKey:function(t,e){if(!My(t))return"symbol"==typeof t?t:("string"==typeof t?"S":"P")+t;if(!Ly(t,Fy)){if(!Uy(t))return"F";if(!e)return"E";Vy(t)}return t[Fy].objectID},getWeakData:function(t,e){if(!Ly(t,Fy)){if(!Uy(t))return!0;if(!e)return!1;Vy(t)}return t[Fy].weakData},onFreeze:function(t){return Dy&&Ny&&Uy(t)&&!Ly(t,Fy)&&Vy(t),t}};Ty[Fy]=!0;var Wy=Cr,By=y,Qy=by.exports,Hy=g,qy=kr,Ky=li,Yy=Eu,Jy=T,Xy=it,$y=Fa,Zy=nr.f,tg=Sp.forEach,eg=L,rg=ha.set,ng=ha.getterFor,og=nr.f,ig=ho,ag=yu,ug=rr,cg=Eu,sg=li,fg=au,lg=xu,pg=L,hg=by.exports.fastKey,vg=ha.set,dg=ha.getterFor,yg={getConstructor:function(t,e,r,n){var o=t((function(t,o){cg(t,i),vg(t,{type:e,index:ig(null),first:void 0,last:void 0,size:0}),pg||(t.size=0),null!=o&&sg(o,t[n],{that:t,AS_ENTRIES:r})})),i=o.prototype,a=dg(e),u=function(t,e,r){var n,o,i=a(t),u=c(t,e);return u?u.value=r:(i.last=u={index:o=hg(e,!0),key:e,value:r,previous:n=i.last,next:void 0,removed:!1},i.first||(i.first=u),n&&(n.next=u),pg?i.size++:t.size++,"F"!==o&&(i.index[o]=u)),t},c=function(t,e){var r,n=a(t),o=hg(e);if("F"!==o)return n.index[o];for(r=n.first;r;r=r.next)if(r.key==e)return r};return ag(i,{clear:function(){for(var t=a(this),e=t.index,r=t.first;r;)r.removed=!0,r.previous&&(r.previous=r.previous.next=void 0),delete e[r.index],r=r.next;t.first=t.last=void 0,pg?t.size=0:this.size=0},delete:function(t){var e=this,r=a(e),n=c(e,t);if(n){var o=n.next,i=n.previous;delete r.index[n.index],n.removed=!0,i&&(i.next=o),o&&(o.previous=i),r.first==n&&(r.first=o),r.last==n&&(r.last=i),pg?r.size--:e.size--}return!!n},forEach:function(t){for(var e,r=a(this),n=ug(t,arguments.length>1?arguments[1]:void 0);e=e?e.next:r.first;)for(n(e.value,e.key,this);e&&e.removed;)e=e.previous},has:function(t){return!!c(this,t)}}),ag(i,r?{get:function(t){var e=c(this,t);return e&&e.value},set:function(t,e){return u(this,0===t?0:t,e)}}:{add:function(t){return u(this,t=0===t?0:t,t)}}),pg&&og(i,"size",{get:function(){return a(this).size}}),o},setStrong:function(t,e,r){var n=e+" Iterator",o=dg(e),i=dg(n);fg(t,e,(function(t,e){vg(this,{type:n,target:t,state:o(t),kind:e,last:void 0})}),(function(){for(var t=i(this),e=t.kind,r=t.last;r&&r.removed;)r=r.previous;return t.target&&(t.last=r=r?r.next:t.state.first)?"keys"==e?{value:r.key,done:!1}:"values"==e?{value:r.value,done:!1}:{value:[r.key,r.value],done:!1}:(t.target=void 0,{value:void 0,done:!0})}),r?"entries":"values",!r,!0),lg(e)}},gg=function(t,e,r){var n,o=-1!==t.indexOf("Map"),i=-1!==t.indexOf("Weak"),a=o?"set":"add",u=By[t],c=u&&u.prototype,s={};if(eg&&Jy(u)&&(i||c.forEach&&!Hy((function(){(new u).entries().next()})))){var f=(n=e((function(e,r){rg(Yy(e,f),{type:t,collection:new u}),null!=r&&Ky(r,e[a],{that:e,AS_ENTRIES:o})}))).prototype,l=ng(t);tg(["add","clear","delete","forEach","get","has","set","keys","values","entries"],(function(t){var e="add"==t||"set"==t;!(t in c)||i&&"clear"==t||qy(f,t,(function(r,n){var o=l(this).collection;if(!e&&i&&!Xy(r))return"get"==t&&void 0;var a=o[t](0===r?0:r,n);return e?this:a}))})),i||Zy(f,"size",{configurable:!0,get:function(){return l(this).collection.size}})}else n=r.getConstructor(e,t,o,a),Qy.enable();return $y(n,t,!1,!0),s[t]=n,Wy({global:!0,forced:!0},s),i||r.setStrong(n,t,o),n};gg("Map",(function(t){return function(){return t(this,arguments.length?arguments[0]:void 0)}}),yg);var mg=at.Map;!function(t){t.exports=mg}(my);var bg=h(my.exports),wg={exports:{}},xg=Ut,Sg=$t,kg=$,Eg=gn,_g=y.TypeError,Og=function(t){return function(e,r,n,o){xg(r);var i=Sg(e),a=kg(i),u=Eg(i),c=t?u-1:0,s=t?-1:1;if(n<2)for(;;){if(c in a){o=a[c],c+=s;break}if(c+=s,t?c<0:u<=c)throw _g("Reduce of empty array with no initial value")}for(;t?c>=0:u>c;c+=s)c in a&&(o=r(o,a[c],c,i));return o}},Ag={left:Og(!1),right:Og(!0)}.left,jg=wt,Pg=ic;Cr({target:"Array",proto:!0,forced:!fv("reduce")||!Pg&&jg>79&&jg<83},{reduce:function(t){var e=arguments.length;return Ag(this,t,e,e>1?arguments[1]:void 0)}});var Tg=vv("Array").reduce,Mg=pt,Lg=Tg,Rg=Array.prototype,Ig=function(t){var e=t.reduce;return t===Rg||Mg(Rg,t)&&e===Rg.reduce?Lg:e};!function(t){t.exports=Ig}(wg);var Cg=h(wg.exports),Ug={exports:{}},Dg=Cr,Ng=y,Fg=pn,Gg=cn,Vg=gn,zg=$t,Wg=jl,Bg=wl,Qg=Ll("splice"),Hg=Ng.TypeError,qg=Math.max,Kg=Math.min,Yg=9007199254740991,Jg="Maximum allowed length exceeded";Dg({target:"Array",proto:!0,forced:!Qg},{splice:function(t,e){var r,n,o,i,a,u,c=zg(this),s=Vg(c),f=Fg(t,s),l=arguments.length;if(0===l?r=n=0:1===l?(r=0,n=s-f):(r=l-2,n=Kg(qg(Gg(e),0),s-f)),s+r-n>Yg)throw Hg(Jg);for(o=Wg(c,n),i=0;i<n;i++)(a=f+i)in c&&Bg(o,i,c[a]);if(o.length=n,r<n){for(i=f;i<s-n;i++)u=i+r,(a=i+n)in c?c[u]=c[a]:delete c[u];for(i=s;i>s-n+r;i--)delete c[i-1]}else if(r>n)for(i=s-n;i>f;i--)u=i+r-1,(a=i+n-1)in c?c[u]=c[a]:delete c[u];for(i=0;i<r;i++)c[i+f]=arguments[i+2];return c.length=s-n+r,o}});var Xg=vv("Array").splice,$g=pt,Zg=Xg,tm=Array.prototype,em=function(t){var e=t.splice;return t===tm||$g(tm,t)&&e===tm.splice?Zg:e};!function(t){t.exports=em}(Ug);var rm=h(Ug.exports),nm=P,om=Ut,im=it,am=ee,um=ec,cm=m,sm=y.Function,fm=nm([].concat),lm=nm([].join),pm={},hm=function(t,e,r){if(!am(pm,e)){for(var n=[],o=0;o<e;o++)n[o]="a["+o+"]";pm[e]=sm("C,a","return new C("+lm(n,",")+")")}return pm[e](t,r)},vm=cm?sm.bind:function(t){var e=om(this),r=e.prototype,n=um(arguments,1),o=function(){var r=fm(n,um(arguments));return this instanceof o?hm(e,r.length,r):e.apply(t,r)};return im(r)&&(o.prototype=r),o},dm=vm;Cr({target:"Function",proto:!0,forced:Function.bind!==dm},{bind:dm});var ym=vv("Function").bind,gm=pt,mm=ym,bm=Function.prototype,wm=function(t){var e=t.bind;return t===bm||gm(bm,t)&&e===bm.bind?mm:e};!function(t){t.exports=wm}({exports:{}});var xm={exports:{}},Sm=Sp.map;Cr({target:"Array",proto:!0,forced:!Ll("map")},{map:function(t){return Sm(this,t,arguments.length>1?arguments[1]:void 0)}});var km=vv("Array").map,Em=pt,_m=km,Om=Array.prototype,Am=function(t){var e=t.map;return t===Om||Em(Om,t)&&e===Om.map?_m:e};!function(t){t.exports=Am}(xm);var jm=h(xm.exports),Pm={exports:{}},Tm=sr,Mm=Xo,Lm=rr,Rm=C,Im=$t,Cm=function(t,e,r,n){try{return n?e(Tm(r)[0],r[1]):e(r)}catch(e){Mm(t,"throw",e)}},Um=_o,Dm=qu,Nm=gn,Fm=wl,Gm=qo,Vm=Go,zm=y.Array,Wm=function(t){var e=Im(t),r=Dm(this),n=arguments.length,o=n>1?arguments[1]:void 0,i=void 0!==o;i&&(o=Lm(o,n>2?arguments[2]:void 0));var a,u,c,s,f,l,p=Vm(e),h=0;if(!p||this==zm&&Um(p))for(a=Nm(e),u=r?new this(a):zm(a);a>h;h++)l=i?o(e[h],h):e[h],Fm(u,h,l);else for(f=(s=Gm(e,p)).next,u=r?new this:[];!(c=Rm(f,s)).done;h++)l=i?Cm(s,o,[c.value,h],!0):c.value,Fm(u,h,l);return u.length=h,u};Cr({target:"Array",stat:!0,forced:!Pu((function(t){Array.from(t)}))},{from:Wm});var Bm=at.Array.from;!function(t){t.exports=Bm}(Pm);var Qm=h(Pm.exports),Hm={exports:{}},qm=cn,Km=vi,Ym=tt,Jm=y.RangeError,Xm=P,$m=dn,Zm=vi,tb=tt,eb=Xm((function(t){var e=Km(Ym(this)),r="",n=qm(t);if(n<0||n==1/0)throw Jm("Wrong number of repetitions");for(;n>0;(n>>>=1)&&(e+=e))1&n&&(r+=e);return r})),rb=Xm("".slice),nb=Math.ceil,ob=function(t){return function(e,r,n){var o,i,a=Zm(tb(e)),u=$m(r),c=a.length,s=void 0===n?" ":Zm(n);return u<=c||""==s?a:((i=eb(s,nb((o=u-c)/s.length))).length>o&&(i=rb(i,0,o)),t?a+i:i+a)}},ib={start:ob(!1),end:ob(!0)},ab=/Version\/10(?:\.\d+){1,2}(?: [\w./]+)?(?: Mobile\/\w+)? Safari\//.test(ht),ub=ib.start;Cr({target:"String",proto:!0,forced:ab},{padStart:function(t){return ub(this,t,arguments.length>1?arguments[1]:void 0)}});var cb=vv("String").padStart,sb=pt,fb=cb,lb=String.prototype,pb=function(t){var e=t.padStart;return"string"==typeof t||t===lb||sb(lb,t)&&e===lb.padStart?fb:e};!function(t){t.exports=pb}(Hm);var hb=h(Hm.exports),vb=function(t){return 0!==t},db=function(){function t(){r(this,t),this._listenerMap=new bg}return o(t,[{key:"on",value:function(t,e){this._listenerMap.has(t)||this._listenerMap.set(t,[]),this._listenerMap.get(t).push(e)}},{key:"off",value:function(t,e){var r=this._listenerMap.get(t);if(r&&r.length){var n=Cg(r).call(r,(function(t,r,n){return"function"==typeof r&&r===e?t=n:t}),-1);if(n>-1)return rm(r).call(r,n,1),this._listenerMap.set(t,r),!0}return!1}},{key:"unbind",value:function(){this._listenerMap.clear()}},{key:"emit",value:function(t){for(var e=arguments.length,r=new Array(e>1?e-1:0),n=1;n<e;n++)r[n-1]=arguments[n];var o=this._listenerMap.get(t);return!(!o||!o.length)&&(wd(o).call(o,(function(t){t.apply(void 0,r)})),!0)}}]),t}(),yb=function(){},gb=function(){};function mb(t){var e;return jm(e=Qm(new Uint8Array(t))).call(e,(function(t){var e;return hb(e=t.toString(16)).call(e,2,"0")})).join(" ")}var bb={exports:{}},wb=vv("Array").values,xb=Co,Sb=ee,kb=pt,Eb=wb,_b=Array.prototype,Ob={DOMTokenList:!0,NodeList:!0},Ab=function(t){var e=t.values;return t===_b||kb(_b,t)&&e===_b.values||Sb(Ob,xb(t))?Eb:e};!function(t){t.exports=Ab}(bb);var jb,Pb=h(bb.exports),Tb=o((function t(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:{};r(this,t),this.type=e.type,this.mode=e.mode,this.minValue=e.minValue,this.maxValue=e.maxValue,this.uncertainty=e.uncertainty,this.minPeriod=e.minPeriod,this.maxPeriod=e.maxPeriod,this.typicalPeriod=e.typicalPeriod,this.granularity=e.granularity})),Mb=o((function t(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:{};r(this,t),this.number=e.number,this.name=e.name,this.unit=e.unit,this.id=e.id,this.mutalExclusionMask=e.mutalExclusionMask,this.measurementInfo=e.measurementInfo})),Lb=function(t){i(n,t);var e=s(n);function n(t){var o;return r(this,n),(o=e.call(this)).number=t.number,o.name=t.name,o.unit=t.unit,o.specs=t,o.enabled=!1,o.values=[],o.value=null,o}return o(n,[{key:"clear",value:function(){this.value=null,this.values=[]}},{key:"setValue",value:function(t,e){this.value=t,e&&Pb(this).push(this.value),this.emit("value-changed",this)}},{key:"setEnabled",value:function(t){this.enabled!==t&&(this.enabled=t,this.emit("state-changed",this))}}]),n}(db),Rb=function(t){i(m,t);var n,a,u,c,f,l,p,h,v,d,y,g=s(m);function m(t){var e;if(r(this,m),e=g.call(this),"undefined"==typeof TextDecoder){var n=require("text-encoding");jb=n.TextDecoder}else jb=TextDecoder;return e.device=t,e.sensors=[],e.opened=!1,e.rollingCounter=0,e.collecting=!1,e.measurementPeriod=10,e.response=null,e.remainingResponseLength=0,e.defaultSensorsMask=0,e.keepValues=!0,e.minMeasurementPeriod=10,e.serialNumber="",e.orderCode="",e.name="",e}return o(m,[{key:"getBatteryLevel",value:(y=e(fd.mark((function t(){var e;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return t.next=2,this._getStatus();case 2:return e=t.sent,t.abrupt("return",e.battery);case 4:case"end":return t.stop()}}),t,this)}))),function(){return y.apply(this,arguments)})},{key:"getChargingState",value:(d=e(fd.mark((function t(){var e;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return t.next=2,this._getStatus();case 2:return e=t.sent,t.abrupt("return",e.chargingStatus);case 4:case"end":return t.stop()}}),t,this)}))),function(){return d.apply(this,arguments)})},{key:"open",value:(v=e(fd.mark((function t(){var e,r=arguments;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:if(e=r.length>0&&void 0!==r[0]&&r[0],!this.opened){t.next=3;break}throw new Error("Device cannot be opened because it is already open");case 3:return t.next=5,this._connect();case 5:return t.next=7,this._init();case 7:return t.next=9,this._getStatus();case 9:return t.next=11,this._getDeviceInfo();case 11:return t.next=13,this._getDefaultSensorsMask();case 13:return t.next=15,this._getAvailableSensors();case 15:this._onOpened(),e&&this.start();case 17:case"end":return t.stop()}}),t,this)}))),function(){return v.apply(this,arguments)})},{key:"close",value:(h=e(fd.mark((function t(){return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:if(this.opened){t.next=2;break}throw new Error("Device cannot be closed because it is not open");case 2:return t.next=4,this._stopMeasurements();case 4:return t.next=6,this._sendCommand(uy.DISCONNECT);case 6:return t.abrupt("return",this._disconnect());case 7:case"end":return t.stop()}}),t,this)}))),function(){return h.apply(this,arguments)})},{key:"enableDefaultSensors",value:function(){for(var t=1,e=0;e<32;++e){if((this.defaultSensorsMask&t)===t){var r=this.getSensor(e);r&&r.setEnabled(!0)}t<<=1}}},{key:"start",value:function(){var t,e,r=arguments.length>0&&void 0!==arguments[0]?arguments[0]:null,n=md(t=this.sensors).call(t,(function(t){return t.enabled}));0===n.length&&(this.enableDefaultSensors(),n=md(e=this.sensors).call(e,(function(t){return t.enabled})));wd(n).call(n,(function(t){return t.clear()})),r&&(this.measurementPeriod=r),this._startMeasurements()}},{key:"stop",value:function(){this._stopMeasurements()}},{key:"getSensor",value:function(t){var e;return Md(e=this.sensors).call(e,(function(e){return e.number===t}))}},{key:"_connect",value:(p=e(fd.mark((function t(){var e=this;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return t.abrupt("return",this.device.setup({onClosed:function(){return e._onClosed()},onResponse:function(t){return e._handleResponse(t)}}).then((function(){e.writeQueue=[],e.deviceWriteInterval=Wd((function(){if(e.writeQueue&&e.writeQueue.length>0){var t=e.writeQueue[0];t.written||(e._writeToDevice(t.buffer),t.written=!0)}}),10)})));case 1:case"end":return t.stop()}}),t,this)}))),function(){return p.apply(this,arguments)})},{key:"_disconnect",value:(l=e(fd.mark((function t(){return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return clearInterval(this.deviceWriteInterval),t.abrupt("return",this.device.close());case 2:case"end":return t.stop()}}),t,this)}))),function(){return l.apply(this,arguments)})},{key:"_init",value:function(){return this.collecting=!1,this.rollingCounter=255,this._sendCommand(uy.INIT)}},{key:"_handleResponse",value:function(t){var e,r,n,o;if(yb("command notified: ".concat(mb(t.buffer))),this.remainingResponseLegnth>0){if(this.remainingResponseLegnth-=t.buffer.byteLength,this.response=new DataView((r=this.response.buffer,n=Qd(e=t.buffer).call(e,0),(o=new Uint8Array(r.byteLength+n.byteLength)).set(new Uint8Array(r),0),o.set(new Uint8Array(n),r.byteLength),o.buffer)),this.remainingResponseLegnth>0)return}else this.response=t;var i=this.response.getUint8(1);if(i>this.response.buffer.byteLength)this.remainingResponseLegnth=i-this.response.buffer.byteLength;else if(yb("handle command: ".concat(mb(this.response.buffer))),this.response.getUint8(0)===gy)this._processMeasurements(this.response);else{var a=this.response.getUint8(4),u=this.response.getUint8(5),c=new DataView(this.response.buffer,6);this._resolveWriteCommand(a,u,c),this.remainingResponseLegnth=0,this.response=null}}},{key:"_getSensorsWithMask",value:function(t){for(var e=[],r=1,n=0;n<32;++n){if((t&r)===r){var o,i=this.getSensor(n);if(i)e.push(i),yb($d(o="available: [".concat(t,"] ")).call(o,e[e.length-1].number))}r<<=1}return e}},{key:"_processMeasurements",value:function(t){var e=[],r=!0,n=0,o=0,i=t.getUint8(4);switch(i){case cy:e=this._getSensorsWithMask(t.getUint16(5,!0)),n=t.getUint8(7,!0),o=9;break;case sy:e=this._getSensorsWithMask(t.getUint32(5,!0)),n=t.getUint8(9,!0),o=11;break;case fy:case ly:e[0]=this.getSensor(t.getUint8(6)),n=t.getUint8(7,!0),o=8;break;case hy:case py:e[0]=this.getSensor(t.getUint8(6)),n=t.getUint8(7,!0),o=8,r=!1;break;case vy:case dy:case yy:yb("Purposely Ignoring packet type: ".concat(i));break;default:yb("Unknown packet type: ".concat(i))}for(var a=0;a<n;++a)for(var u=0;u<e.length;++u)r?e[u].setValue(t.getFloat32(o,!0),this.keepValues):e[u].setValue(t.getInt32(o,!0),this.keepValues),o+=4}},{key:"_resolveWriteCommand",value:function(t,e,r){var n,o,i=Md(n=this.writeQueue).call(n,(function(r){return r.command===t&&r.rollingCounter===e}));i&&(i.resolve(r),this.writeQueue=md(o=this.writeQueue).call(o,(function(t){return t!==i})))}},{key:"_onOpened",value:function(){yb("opened"),this.opened=!0,this.emit("device-opened")}},{key:"_onClosed",value:function(){yb("closed"),this.opened=!1,this.emit("device-closed")}},{key:"_decRollingCounter",value:function(){return this.rollingCounter-=1,this.rollingCounter}},{key:"_calculateChecksum",value:function(t){for(var e=t[1],r=-1*t[3],n=0;n<e;++n)r+=t[n],r&=255;return r<0||r>255?(yb("Checksum failed!"),0):r}},{key:"_sendCommand",value:function(t){var e=new Uint8Array(uy.HEADER.byteLength+t.byteLength);return e.set(new Uint8Array(uy.HEADER),0),e.set(new Uint8Array(t),uy.HEADER.byteLength),e[1]=e.length,e[2]=this._decRollingCounter(),e[3]=this._calculateChecksum(e),this._queueWriteCommand(e)}},{key:"_writeToDevice",value:(f=e(fd.mark((function t(e){var r,n,o;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:n=0,o=e.length;case 2:if(!(o>0)){t.next=14;break}return t.prev=3,o>this.device.maxPacketLength?(r=e.subarray(n,n+this.device.maxPacketLength),o-=this.device.maxPacketLength,n+=this.device.maxPacketLength):(r=e.subarray(n,n+o),o=0),t.next=7,this.device.writeCommand(r);case 7:t.next=12;break;case 9:t.prev=9,t.t0=t.catch(3),yb("Write Failure: ".concat(t.t0));case 12:t.next=2;break;case 14:case"end":return t.stop()}}),t,this,[[3,9]])}))),function(t){return f.apply(this,arguments)})},{key:"_queueWriteCommand",value:function(t){var e=this;return yb("command queued: ".concat(mb(t))),new ll((function(r,n){e.writeQueue.push({command:t[4],rollingCounter:t[2],buffer:t,written:!1,resolve:r,reject:n}),ey((function(){var r,o;e.writeQueue=md(r=e.writeQueue).call(r,(function(e){return e.command===t[4]&&e.rollingCounter!==t[2]})),n(new Error($d(o="write command timed out after 5s. Command: ".concat(t[4].toString(16)," Rolling Counter: ")).call(o,t[2].toString(16))))}),5e3)}))}},{key:"_getStatus",value:(c=e(fd.mark((function t(){var e,r,n,o;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return t.next=2,this._sendCommand(uy.GET_STATUS);case 2:return n=t.sent,o={mainFirmwareVersion:$d(e="".concat(n.getUint8(2),".")).call(e,n.getUint8(3)),bleFirmwareVersion:$d(r="".concat(n.getUint8(6),".")).call(r,n.getUint8(9)),battery:n.getUint8(10),chargingStatus:"".concat(n.getUint8(11))},t.abrupt("return",o);case 5:case"end":return t.stop()}}),t,this)}))),function(){return c.apply(this,arguments)})},{key:"_getAvailableSensors",value:(u=e(fd.mark((function t(){var e,r,n=this;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return t.next=2,this._sendCommand(uy.GET_SENSOR_IDS).then((function(t){n.availableSensors=t.getUint32(0,!0),yb("Get Available Sensors Returned ".concat(n.availableSensors))}));case 2:e=1,r=0;case 4:if(!(r<31)){t.next=12;break}if((this.availableSensors&e)!==e){t.next=8;break}return t.next=8,this._getSensorInfo(r);case 8:e<<=1;case 9:++r,t.next=4;break;case 12:case"end":return t.stop()}}),t,this)}))),function(){return u.apply(this,arguments)})},{key:"_getDefaultSensorsMask",value:function(){var t=this;return this._sendCommand(uy.GET_DEFAULT_SENSORS_MASK).then((function(e){t.defaultSensorsMask=e.getUint32(0,!0),yb("Default Sensors:"),gb(t)}))}},{key:"_getDeviceInfo",value:function(){var t=this;return this._sendCommand(uy.GET_INFO).then((function(e){var r,n,o,i=new jb("utf-8");t.orderCode=i.decode(md(r=new Uint8Array(e.buffer,6,16)).call(r,vb)),t.serialNumber=i.decode(md(n=new Uint8Array(e.buffer,22,16)).call(n,vb)),t.name=i.decode(md(o=new Uint8Array(e.buffer,38,32)).call(o,vb)),yb("Device Info:"),gb(t)}))}},{key:"_getSensorInfo",value:(a=e(fd.mark((function t(e){var r,n=this;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return(r=new Uint8Array(uy.GET_SENSOR_INFO))[1]=e,t.abrupt("return",this._sendCommand(r).then((function(t){var e=t.getUint32(2,!0);if(e>0){var r,o,i=new jb("utf-8"),a=new Tb({type:t.getUint8(6),mode:t.getUint8(7),minValue:t.getFloat64(108,!0),maxValue:t.getFloat64(116,!0),uncertainty:t.getFloat64(100,!0),minPeriod:t.getUint32(124,!0)/1e3,maxPeriod:((t.getUint32(132,!0)<<32)+t.getUint32(128,!0))/1e3,typicalPeriod:t.getUint32(136,!0)/1e3,granularity:t.getUint32(140,!0)/1e3}),u=new Mb({number:t.getUint8(0),name:i.decode(md(r=new Uint8Array(t.buffer,14,60)).call(r,vb)),unit:i.decode(md(o=new Uint8Array(t.buffer,74,32)).call(o,vb)),mutalExclusionMask:t.getUint32(144,!0),measurementInfo:a,sensorId:e}),c=new Lb(u);yb("Get Sensor Info Returned"),gb(c),n.sensors.push(c),c.on("state-changed",(function(){var t;yb("Sensor Restart: ".concat(c.number)),c.enabled&&(n.measurementPeriod=c.specs.measurementInfo.typicalPeriod,wd(t=n.sensors).call(t,(function(t){if(c.number!==t.number&&t.enabled){var e=1<<t.number;(e&c.specs.mutalExclusionMask)===e?t.enabled=!1:t.specs.measurementInfo.typicalPeriod>n.measurementPeriod&&(n.measurementPeriod=t.specs.measurementInfo.typicalPeriod)}}))),n._restartMeasurements()}))}})));case 3:case"end":return t.stop()}}),t,this)}))),function(t){return a.apply(this,arguments)})},{key:"_restartMeasurements",value:(n=e(fd.mark((function t(){var e;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:if(e=this.collecting,!this.collecting){t.next=10;break}return t.prev=2,t.next=5,this._stopMeasurements();case 5:t.next=10;break;case 7:t.prev=7,t.t0=t.catch(2),console.error(t.t0);case 10:if(this.collecting||!e){t.next=19;break}return t.prev=11,t.next=14,this._startMeasurements();case 14:t.next=19;break;case 16:t.prev=16,t.t1=t.catch(11),console.error(t.t1);case 19:case"end":return t.stop()}}),t,this,[[2,7],[11,16]])}))),function(){return n.apply(this,arguments)})},{key:"_setMeasurementPeriod",value:function(t){var e=new Uint8Array(uy.SET_MEASUREMENT_PERIOD),r=1e3*this.minMeasurementPeriod;return t<r&&(t=r),yb("MeasurementPeriod: ".concat(t)),e[3]=t>>0&255,e[4]=t>>8&255,e[5]=t>>16&255,e[6]=t>>24&255,this._sendCommand(e)}},{key:"_getEnabledChannelMask",value:function(){var t,e=0,r=md(t=this.sensors).call(t,(function(t){return t.enabled}));return wd(r).call(r,(function(t){e+=1<<t.number})),e}},{key:"_startMeasurements",value:function(){var t=this;return this._setMeasurementPeriod(1e3*this.measurementPeriod).then((function(){var e=t._getEnabledChannelMask();yb("ChannelMask: ".concat(e));var r=new Uint8Array(uy.START_MEASUREMENTS);return r[3]=e>>0&255,r[4]=e>>8&255,r[5]=e>>16&255,r[6]=e>>24&255,t._sendCommand(r).then((function(e){0===e.getUint8(0)&&(t.collecting=!0,t.emit("measurements-started"))}))}))}},{key:"_stopMeasurements",value:function(){var t=this;return this._sendCommand(uy.STOP_MEASUREMENTS).then((function(e){0===e.getUint8(0)&&(t.collecting=!1,t.emit("measurements-stopped"))}))}}]),m}(db),Ib=function(){function t(e){r(this,t),this.webBluetoothNativeDevice=e,this.maxPacketLength=20,this.deviceCommand=null,this.deviceResponse=null}var n,i,a;return o(t,[{key:"godirectAdapter",get:function(){return!0}},{key:"writeCommand",value:(a=e(fd.mark((function t(e){return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return t.abrupt("return",this.deviceCommand.writeValue(e));case 1:case"end":return t.stop()}}),t,this)}))),function(t){return a.apply(this,arguments)})},{key:"setup",value:(i=e(fd.mark((function t(e){var r,n,o,i,a,u=this;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return r=e.onClosed,n=e.onResponse,this.webBluetoothNativeDevice.addEventListener("gattserverdisconnected",r),t.prev=2,t.next=5,this.webBluetoothNativeDevice.gatt.connect();case 5:return o=t.sent,t.next=8,o.getPrimaryService("d91714ef-28b9-4f91-ba16-f0d9a604f112");case 8:return i=t.sent,t.next=11,i.getCharacteristics();case 11:a=t.sent,wd(a).call(a,(function(t){switch(t.uuid){case"f4bf14a6-c7d5-4b6d-8aa8-df1a7c83adcb":u.deviceCommand=t;break;case"b41e6675-a329-40e0-aa01-44d2f444babe":u.deviceResponse=t,u.deviceResponse.addEventListener("characteristicvaluechanged",(function(t){var e=t.target.value;n(e)})),u.deviceResponse.startNotifications();break;default:yb("No case found for ".concat(t.uuid))}})),t.next=18;break;case 15:t.prev=15,t.t0=t.catch(2),console.error(t.t0);case 18:if(this.deviceCommand&&this.deviceResponse){t.next=20;break}throw new Error("Expected command and response characteristics not found");case 20:case"end":return t.stop()}}),t,this,[[2,15]])}))),function(t){return i.apply(this,arguments)})},{key:"close",value:(n=e(fd.mark((function t(){return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return t.abrupt("return",this.webBluetoothNativeDevice.gatt.disconnect());case 1:case"end":return t.stop()}}),t,this)}))),function(){return n.apply(this,arguments)})}]),t}(),Cb=function(){function t(e){r(this,t),this.webUsbNativeDevice=e,this.onResponse=null,this.onClosed=null,this.reportId=0,this.maxPacketLength=63}var n,i,a;return o(t,[{key:"godirectAdapter",get:function(){return!0}},{key:"writeCommand",value:(a=e(fd.mark((function t(e){var r,n;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return n=new Uint8Array($d(r=[e.byteLength]).call(r,f(e))),t.abrupt("return",this.webUsbNativeDevice.sendReport(this.reportId,n));case 2:case"end":return t.stop()}}),t,this)}))),function(t){return a.apply(this,arguments)})},{key:"setup",value:(i=e(fd.mark((function t(e){var r,n,o=this;return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:return r=e.onClosed,n=e.onResponse,t.next=3,this.webUsbNativeDevice.open();case 3:this.onResponse=n,this.onClosed=r,this.reportId=this.webUsbNativeDevice.collections[0].outputReports[0].reportId,this.webUsbNativeDevice.oninputreport=function(t){var e,r=new DataView(Qd(e=t.data.buffer).call(e,1));o.onResponse(r)};case 7:case"end":return t.stop()}}),t,this)}))),function(t){return i.apply(this,arguments)})},{key:"close",value:(n=e(fd.mark((function t(){return fd.wrap((function(t){for(;;)switch(t.prev=t.next){case 0:this.webUsbNativeDevice.close(),this.onClosed();case 2:case"end":return t.stop()}}),t,this)}))),function(){return n.apply(this,arguments)})}]),t}(),Ub={createDevice:function(t){var r=arguments;return e(fd.mark((function e(){var n,o,i,a,u,c,s;return fd.wrap((function(e){for(;;)switch(e.prev=e.next){case 0:if(n=r.length>1&&void 0!==r[1]?r[1]:{},o=n.open,i=void 0===o||o,a=n.startMeasurements,u=void 0===a||a,(c=t).godirectAdapter){e.next=12;break}if(!t.gatt){e.next=7;break}c=new Ib(t),e.next=12;break;case 7:if(!t.collections[0].outputReports[0]){e.next=11;break}c=new Cb(t),e.next=12;break;case 11:throw new Error("Device Open Failed [ No matching adapter ]");case 12:if(s=new Rb(c),!i){e.next=23;break}return e.prev=14,e.next=17,s.open(u);case 17:e.next=23;break;case 19:throw e.prev=19,e.t0=e.catch(14),console.error(e.t0),new Error("Device Open Failed [".concat(e.t0,"]"));case 23:return e.abrupt("return",s);case 24:case"end":return e.stop()}}),e,null,[[14,19]])})))()},selectDevice:function(){var t=arguments;return e(fd.mark((function e(){var r,n;return fd.wrap((function(e){for(;;)switch(e.prev=e.next){case 0:if(!(!(t.length>0&&void 0!==t[0])||t[0])){e.next=9;break}if(navigator.bluetooth){e.next=4;break}return e.abrupt("return",ll.reject(new Error("No Web Bluetooth support.")));case 4:return e.next=6,navigator.bluetooth.requestDevice({filters:[{namePrefix:"GDX"}],optionalServices:["d91714ef-28b9-4f91-ba16-f0d9a604f112"]});case 6:r=e.sent,e.next=15;break;case 9:if(navigator.hid){e.next=11;break}return e.abrupt("return",ll.reject(new Error("No Web HID support.")));case 11:return e.next=13,navigator.hid.requestDevice({filters:[{vendorId:2295,productId:16}]});case 13:n=e.sent,r=n[0];case 15:if(r){e.next=17;break}throw new DOMException("No device selected.");case 17:return e.abrupt("return",Ub.createDevice(r));case 18:case"end":return e.stop()}}),e)})))()}};return Ub}));
+
+</script>
+<!-- 앱 로직 -->
+<script>
+/* ============================================================
+   버니어 척척박사 ② — 로르산 냉각 곡선 탐구 앱  (app.js)
+   "설정은 앱이, 탐구는 학생이" · POE(예상→관찰→설명) 구조
+   ============================================================ */
+'use strict';
+
+/* ---------- 조정 가능한 상수 (교사 설정에서 덮어씀) ---------- */
+const CFG = {
+  FREEZING_POINT: 43,   // 로르산(라우르산) 응고점(참고)
+  AUTO_START_TEMP: 55,  // 이 온도 이하 + 하강 추세이면 자동 기록 시작
+  AUTO_STOP_TEMP: 33,   // 이 온도 이하로 내려가면 자동 기록 종료
+  SAMPLE_MS: 2000,      // 측정/기록 주기
+  FLAT_RATE: 0.08,      // 평탄(응고) 구간 판정: |Δ온도/Δ시간| ≤ 이 값(℃/s)
+  PLATEAU_MIN_SEC: 20,  // 이 시간 이상 평탄해야 "뚜렷한" 응고 구간으로 인정
+};
+
+/* ---------- 전역 상태 ---------- */
+const STATE = {
+  current: 0,
+  unlocked: 0,                      // 도달 가능한 최대 단계
+  predict1: null, predict2: '',
+  recState: 'IDLE',                 // IDLE | RECORDING | STOPPED
+  data: [],                         // {t: 경과초, v: 온도}
+  features: null,
+  observe: { q1: null, q2: null, q3: '' },
+  explain: { q4: '', q5: '' },
+  evalResult: null,
+};
+
+const STEP_NAMES = ['도입·예상','실험 준비','센서 연결','데이터 수집','탐구 질문','AI 평가','보고서'];
+
+/* ---------- 작은 도우미 ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const round1 = n => Math.round(n * 10) / 10;
+
+function toast(msg, kind = '') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .4s'; }, 2600);
+  setTimeout(() => el.remove(), 3100);
+}
+
+/* ============================================================
+   스테퍼 & 단계 전환 (완료 조건 게이팅)
+   ============================================================ */
+function buildStepper() {
+  const nav = $('#stepper');
+  nav.innerHTML = '';
+  STEP_NAMES.forEach((name, i) => {
+    const chip = document.createElement('button');
+    chip.className = 'step-chip';
+    chip.dataset.step = i;
+    chip.innerHTML = `<span class="n">${i}</span>${name}`;
+    chip.addEventListener('click', () => {
+      if (i <= STATE.unlocked) goTo(i);
+      else toast('이전 단계를 먼저 완료해 주세요.', 'warn');
+    });
+    nav.appendChild(chip);
+  });
+  refreshStepper();
+}
+
+function refreshStepper() {
+  $$('.step-chip').forEach(chip => {
+    const i = +chip.dataset.step;
+    chip.classList.toggle('active', i === STATE.current);
+    chip.classList.toggle('done', i < STATE.current && i <= STATE.unlocked);
+    chip.classList.toggle('locked', i > STATE.unlocked);
+  });
+}
+
+function goTo(step) {
+  STATE.current = step;
+  $$('.panel').forEach(p => p.classList.remove('active'));
+  $('#panel-' + step).classList.add('active');
+  refreshStepper();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (step === 3) onEnterStep3();
+  if (step === 4) onEnterStep4();
+  if (step === 6) onEnterStep6();
+}
+
+/** 현재 단계의 완료 조건 충족 여부 → 다음 버튼 활성화 갱신 */
+function evaluateGating() {
+  // STEP 0: 예상 1·2 입력
+  setNextEnabled(0, STATE.predict1 !== null && STATE.predict2.trim().length > 0);
+  // STEP 1: 체크리스트 전부
+  const allChecked = $$('#checklist input').every(c => c.checked);
+  setNextEnabled(1, allChecked);
+  // STEP 2: 연결됨 (toStep3.disabled를 따로 제어)
+  // STEP 3: 기록 STOPPED + 데이터 존재
+  $('#toStep4').disabled = !(STATE.recState === 'STOPPED' && STATE.data.length > 1);
+  // STEP 4: 모든 질문 답변
+  $('#toStep5').disabled = !observeExplainComplete();
+  // STEP 5: 평가 결과 존재
+  $('#toStep6').disabled = !STATE.evalResult;
+}
+
+function setNextEnabled(step, ok) {
+  const btn = $(`#panel-${step} [data-next]`);
+  if (btn) btn.disabled = !ok;
+}
+
+function unlock(step) {
+  if (step > STATE.unlocked) STATE.unlocked = step;
+  refreshStepper();
+}
+
+/* 다음/이전 버튼 위임 */
+document.addEventListener('click', e => {
+  const nx = e.target.closest('[data-next]');
+  const pv = e.target.closest('[data-prev]');
+  if (nx && !nx.disabled) {
+    const next = Math.min(STATE.current + 1, STEP_NAMES.length - 1);
+    unlock(next);
+    goTo(next);
+  }
+  if (pv) goTo(Math.max(STATE.current - 1, 0));
+});
+
+/* ============================================================
+   STEP 0 — 예상 (Predict)
+   ============================================================ */
+$$('#predict1 input').forEach(r => r.addEventListener('change', () => {
+  STATE.predict1 = r.value;
+  $$('#predict1 .choice').forEach(c => c.classList.toggle('sel', c.querySelector('input').checked));
+  evaluateGating();
+}));
+$('#predict2').addEventListener('input', e => { STATE.predict2 = e.target.value; evaluateGating(); });
+
+/* ============================================================
+   STEP 1 — 실험 준비 체크리스트
+   ============================================================ */
+$$('#checklist input').forEach(c => c.addEventListener('change', () => {
+  c.closest('.check-item').classList.toggle('checked', c.checked);
+  evaluateGating();
+}));
+
+/* ============================================================
+   STEP 2 — 센서 연결 (기존 godirect 모듈 재사용)
+   ============================================================ */
+const lib = (window.godirect && window.godirect.createDevice) ? window.godirect
+          : (window.godirect && window.godirect.default) ? window.godirect.default
+          : window.godirect;
+let device = null;       // 실 센서
+let demoMode = false;    // 데모(시뮬레이션) 모드
+let latestTemp = null;   // 가장 최근 온도
+
+function setConnMsg(m) { $('#connectMsg').textContent = m || ''; }
+
+function markConnected(name, info) {
+  $('#deviceCard').classList.remove('off');
+  $('#deviceName').textContent = name;
+  $('#deviceInfo').textContent = info;
+  $('#toStep3').disabled = false;
+  unlock(2);
+}
+
+function markDisconnected(msg) {
+  $('#deviceCard').classList.add('off');
+  $('#deviceName').textContent = '아직 연결되지 않음';
+  $('#deviceInfo').textContent = 'Chrome · Edge · 웨일 브라우저에서, https 또는 localhost로 열어야 동작합니다.';
+  $('#connectBtn').hidden = false; $('#connectBtn').disabled = false;
+  $('#disconnectBtn').hidden = true;
+  $('#toStep3').disabled = true;
+  if (msg) setConnMsg(msg);
+}
+
+function pickTemperatureSensor(dev) {
+  const s = dev.sensors || [];
+  return s.find(x => /temp|온도|°c|℃/i.test((x.name || '') + ' ' + (x.unit || '')))
+      || s.find(x => x.enabled) || s[0];
+}
+
+async function connect() {
+  if (!lib || !lib.createDevice) { setConnMsg('라이브러리 로드 오류: 페이지를 새로고침해 주세요.'); return; }
+  if (!('bluetooth' in navigator)) {
+    setConnMsg('이 브라우저는 Web Bluetooth를 지원하지 않아요. Chrome · Edge · 웨일에서 열어 주세요. (iOS Safari는 지원하지 않습니다 — "센서 없이 시연"으로 진행할 수 있어요.)');
+    return;
+  }
+  $('#connectBtn').disabled = true;
+  setConnMsg('기기 선택 창에서 GDX 온도 센서를 골라 주세요…');
+  let bt;
+  try {
+    bt = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: 'GDX' }],
+      optionalServices: ['d91714ef-28b9-4f91-ba16-f0d9a604f112'],
+    });
+  } catch (e) { markDisconnected('연결이 취소되었어요. 다시 시도해 주세요.'); return; }
+
+  setConnMsg('센서에 연결하는 중…');
+  try {
+    device = await lib.createDevice(bt, { open: true, startMeasurements: false });
+  } catch (e) { markDisconnected('연결에 실패했어요: ' + e.message); return; }
+
+  demoMode = false;
+  const battery = (typeof device.batteryLevel === 'number') ? `· 배터리 ${device.batteryLevel}%` : '';
+  markConnected((device.name || 'Go Direct 센서') + ' 연결됨', `상태: 연결됨 ${battery}`);
+  setConnMsg('연결되었어요! 다음 단계에서 측정이 시작됩니다.');
+  $('#connectBtn').hidden = true; $('#disconnectBtn').hidden = false;
+  device.on('device-closed', () => markDisconnected('센서 연결이 끊어졌어요.'));
+
+  // 온도 채널 측정 시작
+  const temp = pickTemperatureSensor(device);
+  (device.sensors || []).forEach(s => s.on('value-changed', sensor => {
+    if (sensor === temp || (device.sensors || []).length === 1) onSample(sensor.value);
+  }));
+  try { await device.start(CFG.SAMPLE_MS); }
+  catch (_) { try { await device.start(); } catch (__) {} }
+}
+
+async function disconnect() {
+  try { if (device) await device.close(); } catch (_) {}
+  device = null;
+  markDisconnected('연결을 끊었어요.');
+}
+
+/* --- 데모(시뮬레이션) 모드 --- */
+let demoTimer = null;
+function startDemo() {
+  demoMode = true; device = null;
+  markConnected('데모 센서 (시뮬레이션)', '실제 센서 없이 가상의 냉각 데이터로 진행합니다.');
+  setConnMsg('데모 모드예요. 측정 단계로 가면 가상 냉각 곡선이 그려집니다.');
+  $('#connectBtn').hidden = false; $('#connectBtn').disabled = false;
+  $('#disconnectBtn').hidden = true;
+  toast('데모 모드로 진행합니다.', 'start');
+}
+
+/** 데모용 가상 온도 생성: 액체냉각 → 43℃ 평탄 → 고체냉각 */
+function makeDemoGenerator() {
+  let phase = 0;             // 진행 인덱스(샘플 수)
+  let temp = 62;            // 시작 온도
+  let plateauHeld = 0;
+  return function next() {
+    const noise = (Math.random() - 0.5) * 0.18;
+    if (temp > CFG.FREEZING_POINT + 0.3) {
+      temp -= 0.85;                                   // 액체 냉각(빠르게 하강)
+    } else if (plateauHeld < 26) {
+      temp = CFG.FREEZING_POINT + (Math.random() - 0.5) * 0.25; // 응고 평탄 구간
+      plateauHeld++;
+    } else {
+      temp -= 0.7;                                    // 고체 냉각
+    }
+    phase++;
+    return round1(temp + noise);
+  };
+}
+
+$('#connectBtn').addEventListener('click', connect);
+$('#disconnectBtn').addEventListener('click', disconnect);
+$('#demoBtn').addEventListener('click', startDemo);
+
+/* ============================================================
+   STEP 3 — 데이터 수집 (★핵심) : 상태 머신 + 자동/수동 + 그래프
+   ============================================================ */
+const canvas = $('#coolingChart');
+const ctx = canvas.getContext('2d');
+let recordStartMs = null;     // RECORDING 시작 시각
+let trendBuf = [];            // 추세 판정용 최근 온도 버퍼 {t,v}
+let chartRAF = null;
+let demoGen = null;
+
+/* 교사 설정 → CFG 반영 */
+function bindSettings() {
+  const map = { setSample: 'SAMPLE_MS', setStart: 'AUTO_START_TEMP', setStop: 'AUTO_STOP_TEMP', setFreeze: 'FREEZING_POINT' };
+  Object.entries(map).forEach(([id, key]) => {
+    $('#' + id).addEventListener('change', e => {
+      let v = parseFloat(e.target.value);
+      if (isNaN(v)) return;
+      CFG[key] = (key === 'SAMPLE_MS') ? v * 1000 : v;
+      // 센서가 연결되어 있으면 측정 주기 재적용 시도
+      if (key === 'SAMPLE_MS' && device) { try { device.start(CFG.SAMPLE_MS); } catch (_) {} }
+      toast('설정을 적용했어요.');
+    });
+  });
+}
+
+function onEnterStep3() {
+  resizeCanvas();
+  if (!chartRAF) loop();
+  // 데모 모드면 가상 샘플을 SAMPLE_MS 주기로 공급
+  if (demoMode && !demoTimer) {
+    demoGen = makeDemoGenerator();
+    demoTimer = setInterval(() => onSample(demoGen()), CFG.SAMPLE_MS);
+  }
+}
+
+/** 모든 온도 샘플의 진입점 (실센서 value-changed / 데모 타이머 공용) */
+function onSample(value) {
+  if (typeof value !== 'number' || isNaN(value)) return;
+  latestTemp = value;
+  const now = performance.now();
+  trendBuf.push({ t: now, v: value });
+  while (trendBuf.length && trendBuf[0].t < now - 8000) trendBuf.shift();
+
+  updateLiveDisplay(value);
+  stateMachineTick(value, now);
+
+  if (STATE.recState === 'RECORDING') {
+    const elapsed = (now - recordStartMs) / 1000;
+    STATE.data.push({ t: elapsed, v: value });
+    $('#elapsedPill').textContent = '⏱ ' + Math.round(elapsed) + '초';
+  }
+}
+
+/** 최근 추세(℃/s) — 음수면 하강 */
+function recentRate() {
+  if (trendBuf.length < 2) return null;
+  const a = trendBuf[0], b = trendBuf[trendBuf.length - 1];
+  const dt = (b.t - a.t) / 1000;
+  if (dt < 1) return null;
+  return (b.v - a.v) / dt;
+}
+
+function updateLiveDisplay(v) {
+  $('#liveTemp').textContent = round1(v).toFixed(1);
+  applyReadoutColor(v);
+  const rate = recentRate();
+  const pill = $('#trendPill');
+  if (rate === null) { pill.textContent = '● 측정 중…'; }
+  else if (rate <= -0.05) pill.textContent = '▼ 내려가는 중 ' + rate.toFixed(2) + '℃/s';
+  else if (rate >= 0.05) pill.textContent = '▲ 올라가는 중 +' + rate.toFixed(2) + '℃/s';
+  else pill.textContent = '● 거의 일정 ' + rate.toFixed(2) + '℃/s';
+}
+
+/* 온도에 따라 readout 배경색 (차가울수록 파랑, 뜨거울수록 주황) */
+function applyReadoutColor(t) {
+  const stops = [[20,[40,96,168]],[33,[22,150,150]],[43,[20,133,122]],[55,[240,140,40]],[65,[232,85,45]]];
+  let c = stops[0][1];
+  if (t <= stops[0][0]) c = stops[0][1];
+  else if (t >= stops[stops.length-1][0]) c = stops[stops.length-1][1];
+  else for (let i=0;i<stops.length-1;i++){
+    const [t0,c0]=stops[i],[t1,c1]=stops[i+1];
+    if (t>=t0&&t<=t1){ const r=(t-t0)/(t1-t0); c=[0,1,2].map(k=>Math.round(c0[k]+(c1[k]-c0[k])*r)); break; }
+  }
+  $('#readout').style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+/* --- 상태 머신: 자동 시작/종료 --- */
+function stateMachineTick(v, now) {
+  if (STATE.recState === 'IDLE') {
+    const rate = recentRate();
+    if (v <= CFG.AUTO_START_TEMP && rate !== null && rate < -0.02) {
+      startRecording(true);
+    }
+  } else if (STATE.recState === 'RECORDING') {
+    if (v <= CFG.AUTO_STOP_TEMP) stopRecording(true);
+  }
+}
+
+function setRecStateUI() {
+  const s = STATE.recState;
+  $('#readout').className = 'readout state-' + s;
+  $('#statebar').className = 'statebar state-' + s;
+  const texts = {
+    IDLE: '대기 중 — 센서가 식기 시작하면 자동으로 기록해요.',
+    RECORDING: '기록 중 — 냉각 곡선을 그리는 중이에요!',
+    STOPPED: '기록 종료 — 곡선을 분석했어요.',
+  };
+  $('#stateText').textContent = texts[s];
+  $('#recStartBtn').disabled = (s === 'RECORDING');
+  $('#recStopBtn').disabled = (s !== 'RECORDING');
+}
+
+function startRecording(auto) {
+  if (STATE.recState === 'RECORDING') return;
+  STATE.recState = 'RECORDING';
+  STATE.data = [];
+  STATE.features = null;
+  $('#featureBox').hidden = true;
+  recordStartMs = performance.now();
+  // 현재 값을 t=0으로 한 점 기록
+  if (typeof latestTemp === 'number') STATE.data.push({ t: 0, v: latestTemp });
+  setRecStateUI();
+  evaluateGating();
+  toast(auto ? `${CFG.AUTO_START_TEMP}℃ 도달 — 자동 기록을 시작했어요!` : '기록을 시작했어요.', 'start');
+}
+
+function stopRecording(auto) {
+  if (STATE.recState !== 'RECORDING') return;
+  STATE.recState = 'STOPPED';
+  setRecStateUI();
+  STATE.features = extractFeatures(STATE.data);
+  renderFeatures();
+  evaluateGating();
+  if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
+  toast(auto ? `${CFG.AUTO_STOP_TEMP}℃ 도달 — 자동으로 기록을 마쳤어요!` : '기록을 멈췄어요.', 'stop');
+}
+
+function resetRecording() {
+  STATE.recState = 'IDLE';
+  STATE.data = [];
+  STATE.features = null;
+  recordStartMs = null;
+  $('#featureBox').hidden = true;
+  $('#elapsedPill').textContent = '⏱ 0초';
+  setRecStateUI();
+  evaluateGating();
+  // 데모면 다시 발생기 시작
+  if (demoMode) {
+    if (demoTimer) clearInterval(demoTimer);
+    demoGen = makeDemoGenerator();
+    demoTimer = setInterval(() => onSample(demoGen()), CFG.SAMPLE_MS);
+  }
+  toast('기록을 초기화했어요.');
+}
+
+$('#recStartBtn').addEventListener('click', () => startRecording(false));
+$('#recStopBtn').addEventListener('click', () => stopRecording(false));
+$('#recResetBtn').addEventListener('click', resetRecording);
+
+/* ---------- 곡선 자동 특징 추출 ---------- */
+/* 평탄 구간 인덱스 찾기 — 노이즈에 강하도록 ±W 샘플 창으로 기울기 평가 */
+function findFlatRun(data) {
+  if (!data || data.length < 3) return null;
+  const W = 2; // 앞뒤 2샘플(≈8초) 창으로 기울기를 평가해 잡음을 평탄화
+  const flat = data.map((_, i) => {
+    const a = data[Math.max(0, i - W)], b = data[Math.min(data.length - 1, i + W)];
+    const dt = (b.t - a.t) || 1;
+    return Math.abs((b.v - a.v) / dt) <= CFG.FLAT_RATE;
+  });
+  let best = { start: 0, end: 0, len: -1 }, runStart = 0;
+  for (let i = 0; i < flat.length; i++) {
+    if (flat[i]) {
+      if (i === 0 || !flat[i - 1]) runStart = i;
+      const len = i - runStart;
+      if (len > best.len) best = { start: runStart, end: i, len };
+    }
+  }
+  return best.len > 0 ? best : null;
+}
+
+function extractFeatures(data) {
+  if (!data || data.length < 3) return null;
+  const startTemp = data[0].v;
+  const endTemp = data[data.length - 1].v;
+
+  const run = findFlatRun(data);
+  let plateau = null;
+  if (run) {
+    const seg = data.slice(run.start, run.end + 1);
+    const durationSec = seg[seg.length - 1].t - seg[0].t;
+    const avg = seg.reduce((s, p) => s + p.v, 0) / seg.length;
+    plateau = {
+      durationSec: Math.round(durationSec),
+      avgTemp: round1(avg),
+      clear: durationSec >= CFG.PLATEAU_MIN_SEC,
+    };
+  }
+  return {
+    startTemp: round1(startTemp),
+    endTemp: round1(endTemp),
+    estimatedFreezingPoint: plateau ? plateau.avgTemp : null,
+    plateauDurationSec: plateau ? plateau.durationSec : 0,
+    plateauClear: !!(plateau && plateau.clear),
+  };
+}
+
+function renderFeatures() {
+  const f = STATE.features;
+  $('#featureBox').hidden = false;
+  const grid = $('#featureGrid');
+  const fp = f.estimatedFreezingPoint;
+  grid.innerHTML = [
+    ['시작 온도', `${f.startTemp}<small>℃</small>`],
+    ['종료 온도', `${f.endTemp}<small>℃</small>`],
+    ['추정 응고점', fp !== null ? `${fp}<small>℃</small>` : '—'],
+    ['평탄 구간', `${f.plateauDurationSec}<small>초</small>`],
+    ['응고 구간', f.plateauClear ? '뚜렷 ✅' : '불명확 ⚠️'],
+  ].map(([k, v]) => `<div class="feature"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+}
+
+/* ---------- 캔버스 곡선 그리기 ---------- */
+function resizeCanvas() {
+  [canvas, $('#reviewChart')].forEach(cv => {
+    if (!cv) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (!w) return;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    cv.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+  });
+}
+window.addEventListener('resize', resizeCanvas);
+
+function drawCurve(cv, data, opts = {}) {
+  const c = cv.getContext('2d');
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if (!w) return;
+  const padL = 42, padR = 14, padT = 14, padB = 28;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  c.clearRect(0, 0, w, h);
+
+  // y 범위: 데이터 + 임계값 포함, 약간 여유
+  const temps = data.map(d => d.v);
+  let yMin = Math.min(CFG.AUTO_STOP_TEMP - 3, ...(temps.length ? temps : [25]));
+  let yMax = Math.max(CFG.AUTO_START_TEMP + 5, ...(temps.length ? temps : [60]));
+  yMin = Math.floor(yMin / 5) * 5; yMax = Math.ceil(yMax / 5) * 5;
+  const tMax = Math.max(30, data.length ? data[data.length - 1].t : 30);
+
+  const xToPx = t => padL + (t / tMax) * plotW;
+  const yToPx = v => padT + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+
+  // y 격자 + 라벨
+  c.font = '11px "JetBrains Mono", monospace'; c.textBaseline = 'middle';
+  for (let v = yMin; v <= yMax; v += 5) {
+    const y = yToPx(v);
+    c.strokeStyle = '#eef1f6'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(padL, y); c.lineTo(w - padR, y); c.stroke();
+    c.fillStyle = '#9aa4b1'; c.textAlign = 'right'; c.fillText(String(v), padL - 8, y);
+  }
+  // x 라벨
+  c.fillStyle = '#9aa4b1'; c.textAlign = 'center'; c.textBaseline = 'top';
+  for (let i = 0; i <= 4; i++) {
+    const t = (tMax / 4) * i;
+    c.fillText(Math.round(t) + 's', xToPx(t), h - 16);
+  }
+
+  // 평탄 구간 음영(추출된 경우)
+  if (opts.plateau && STATE.features && STATE.features.plateauDurationSec > 0) {
+    // 평탄 구간의 시작/끝 t를 다시 찾기 위해 간단 재탐색
+    const seg = findPlateauSpan(data);
+    if (seg) {
+      c.fillStyle = 'rgba(20,133,122,.10)';
+      c.fillRect(xToPx(seg.t0), padT, xToPx(seg.t1) - xToPx(seg.t0), plotH);
+    }
+  }
+
+  if (!data.length) return;
+  // 곡선
+  c.beginPath();
+  data.forEach((d, i) => { const x = xToPx(d.t), y = yToPx(d.v); i ? c.lineTo(x, y) : c.moveTo(x, y); });
+  c.strokeStyle = '#14857a'; c.lineWidth = 2.6; c.lineJoin = 'round'; c.lineCap = 'round'; c.stroke();
+  // 현재 점
+  const last = data[data.length - 1];
+  c.beginPath(); c.arc(xToPx(last.t), yToPx(last.v), 4.5, 0, Math.PI * 2);
+  c.fillStyle = '#14857a'; c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke();
+}
+
+function findPlateauSpan(data) {
+  const run = findFlatRun(data);
+  if (!run) return null;
+  return { t0: data[run.start].t, t1: data[run.end].t };
+}
+
+function loop() {
+  drawCurve(canvas, STATE.data, { plateau: STATE.recState === 'STOPPED' });
+  chartRAF = requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   STEP 4 — 탐구 질문 (Observe · Explain), 한 번에 하나씩
+   ============================================================ */
+const QUESTIONS = [
+  { id: 'q1', group: 'observe', type: 'choice', text: '관찰 1. 온도가 빠르게 변하는(내려가는) 구간에서 로르산의 상태는?',
+    options: ['액체', '고체', '액체 + 고체'] },
+  { id: 'q2', group: 'observe', type: 'choice', text: '관찰 2. 온도가 일정한(평평한) 구간에서 로르산의 상태는?',
+    options: ['액체', '고체', '액체 + 고체'] },
+  { id: 'q3', group: 'observe', type: 'text', text: '관찰 3. 그래프에서 읽은 응고점은 약 몇 ℃인가요? (앱 추정값과 비교해 볼게요)',
+    placeholder: '' },
+  { id: 'q4', group: 'explain', type: 'text', text: '설명 1. 상태가 변하는 동안 온도가 일정하게 유지되는 까닭을 열에너지의 출입과 관련지어 설명해 보세요.',
+    placeholder: '응고하는 동안 열에너지는…' },
+  { id: 'q5', group: 'explain', type: 'text', text: '설명 2. 냉각할 때 입자 운동과 입자 배열은 어떻게 변하나요?',
+    placeholder: '입자의 운동은 …, 입자 사이의 거리·배열은 …' },
+];
+let qIdx = 0;
+
+function onEnterStep4() {
+  resizeCanvas();
+  drawCurve($('#reviewChart'), STATE.data, { plateau: true });
+  renderQuestion();
+}
+
+function answerOf(q) {
+  return q.group === 'observe' ? STATE.observe[q.id] : STATE.explain[q.id];
+}
+function setAnswer(q, val) {
+  if (q.group === 'observe') STATE.observe[q.id] = val;
+  else STATE.explain[q.id] = val;
+  evaluateGating();
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[qIdx];
+  $('#qProgress').textContent = `질문 ${qIdx + 1} / ${QUESTIONS.length}`;
+  $('#qBar').style.width = ((qIdx + 1) / QUESTIONS.length * 100) + '%';
+  const area = $('#questionArea');
+  const cur = answerOf(q);
+
+  if (q.type === 'choice') {
+    area.innerHTML = `<label class="q">${q.text}</label><div class="choices">` +
+      q.options.map(o => `<label class="choice ${cur === o ? 'sel' : ''}">
+        <input type="radio" name="cur" value="${o}" ${cur === o ? 'checked' : ''}> ${o}</label>`).join('') +
+      `</div>`;
+    $$('input[name=cur]', area).forEach(r => r.addEventListener('change', () => {
+      setAnswer(q, r.value);
+      $$('.choice', area).forEach(c => c.classList.toggle('sel', c.querySelector('input').checked));
+      updateQNav();
+    }));
+  } else {
+    area.innerHTML = `<label class="q">${q.text}</label>
+      <textarea rows="4" id="curText" placeholder="${q.placeholder || ''}">${cur || ''}</textarea>`;
+    $('#curText').addEventListener('input', e => { setAnswer(q, e.target.value); updateQNav(); });
+  }
+  updateQNav();
+}
+
+function updateQNav() {
+  $('#qPrev').disabled = qIdx === 0;
+  const last = qIdx === QUESTIONS.length - 1;
+  $('#qNext').textContent = last ? '완료 ✓' : '다음 질문 →';
+  const cur = answerOf(QUESTIONS[qIdx]);
+  const answered = (typeof cur === 'string') ? cur.trim().length > 0 : !!cur;
+  $('#qNext').disabled = !answered;
+}
+
+$('#qPrev').addEventListener('click', () => { if (qIdx > 0) { qIdx--; renderQuestion(); } });
+$('#qNext').addEventListener('click', () => {
+  if (qIdx < QUESTIONS.length - 1) { qIdx++; renderQuestion(); }
+  else { toast('모든 질문에 답했어요! 평가를 받아볼까요?', 'stop'); evaluateGating(); }
+});
+
+function observeExplainComplete() {
+  const o = STATE.observe, e = STATE.explain;
+  return o.q1 && o.q2 && o.q3.trim() && e.q4.trim() && e.q5.trim();
+}
+
+/* ============================================================
+   STEP 5 — AI 평가 (개인정보 제외 익명 데이터만 전송)
+   ============================================================ */
+function buildPayload() {
+  const f = STATE.features || {};
+  return {
+    dataSummary: {
+      startTemp: f.startTemp ?? null,
+      endTemp: f.endTemp ?? null,
+      estimatedFreezingPoint: f.estimatedFreezingPoint ?? null,
+      plateauDurationSec: f.plateauDurationSec ?? 0,
+      plateauClear: f.plateauClear ?? false,
+      studentReadFreezingPoint: STATE.observe.q3,
+      referenceFreezingPoint: CFG.FREEZING_POINT,
+      sampleCount: STATE.data.length,
+    },
+    predictions: { choice: STATE.predict1, reason: STATE.predict2 },
+    observeAnswers: {
+      stateWhileChanging: STATE.observe.q1,
+      stateWhileFlat: STATE.observe.q2,
+      readFreezingPoint: STATE.observe.q3,
+    },
+    explainAnswers: {
+      whyTempConstant: STATE.explain.q4,
+      particleMotionAndArrangement: STATE.explain.q5,
+    },
+  };
+}
+
+async function runEvaluation() {
+  $('#evalBtn').disabled = true;
+  $('#evalArea').innerHTML = '<div class="spinner"></div><p class="lead" style="text-align:center">척척박사 토끼가 데이터를 살펴보는 중…</p>';
+  let result;
+  try {
+    const res = await fetch('/api/evaluate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(buildPayload()),
+    });
+    const text = await res.text();
+    result = JSON.parse(text);
+    if (result.error) throw new Error(result.detail || result.error);
+  } catch (e) {
+    $('#evalArea').innerHTML = `<div class="safety">AI 평가를 불러오지 못했어요. (${e.message})<br>
+      배포 환경(Cloudflare Pages + GEMINI_API_KEY)에서 동작합니다. 로컬에서는 임시 예시 평가를 보여줄게요.</div>`;
+    result = localFallbackEval();
+    setTimeout(() => renderEval(result), 400);
+    STATE.evalResult = result; evaluateGating();
+    $('#evalBtn').disabled = false; $('#evalBtn').textContent = '다시 평가 받기';
+    return;
+  }
+  STATE.evalResult = result;
+  renderEval(result);
+  evaluateGating();
+  $('#evalBtn').disabled = false; $('#evalBtn').textContent = '다시 평가 받기';
+}
+
+/* 로컬/오프라인용 임시 평가 (프록시가 없을 때) */
+function localFallbackEval() {
+  const f = STATE.features || {};
+  const near = f.estimatedFreezingPoint !== null && Math.abs(f.estimatedFreezingPoint - CFG.FREEZING_POINT) <= 3;
+  const success = !!(f.plateauClear && near);
+  return {
+    success,
+    successReason: success
+      ? `평탄 구간이 뚜렷하고, 추정 응고점(${f.estimatedFreezingPoint}℃)이 로르산 기준(약 ${CFG.FREEZING_POINT}℃)에 가까워요.`
+      : '평탄 구간이 뚜렷하지 않거나 추정 응고점이 기준과 차이가 있어요. 측정을 다시 해보면 좋아요.',
+    strengths: ['실험을 끝까지 수행하고 데이터를 기록했어요.', '예상과 관찰을 모두 작성했어요.'],
+    improvements: ['평탄 구간이 더 잘 드러나도록 천천히 식혀 보세요.', '서술형 답변에 근거를 한 가지 더 적어 보세요.'],
+    misconceptions: [{
+      detected: '(예시) 응고할 때 열을 흡수한다고 생각할 수 있어요.',
+      guidingQuestion: '얼음이 얼 때 주변이 따뜻해질까요, 차가워질까요? 응고는 어느 쪽일까요?',
+      correctConcept: '응고할 때는 열에너지를 방출하기 때문에 온도가 한동안 일정하게 유지돼요.',
+    }],
+    encouragement: '직접 측정하고 분석하느라 수고했어요! 다음 단계에서 보고서로 정리해 봐요. 🐰',
+    _local: true,
+  };
+}
+
+function renderEval(r) {
+  const html = [];
+  html.push(`<div class="verdict ${r.success ? 'ok' : 'no'}">
+    ${r.success ? '🎉 실험 성공!' : '🔧 다시 도전해볼까요?'}
+    <span style="font-weight:500; font-size:14px">${esc(r.successReason || '')}</span></div>`);
+
+  if (r.strengths?.length) html.push(block('👍 잘된 점', `<ul>${r.strengths.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`));
+  if (r.improvements?.length) html.push(block('✏️ 보완할 점', `<ul>${r.improvements.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`));
+
+  if (r.misconceptions?.length) {
+    const m = r.misconceptions.map(x => `<div class="misc">
+      <div class="det">🔍 ${esc(x.detected)}</div>
+      <div class="gq">💭 ${esc(x.guidingQuestion)}</div>
+      <div class="cc">✅ ${esc(x.correctConcept)}</div></div>`).join('');
+    html.push(block('🤔 함께 생각해 봐요', m));
+  }
+  if (r.encouragement) html.push(`<div class="encourage">🐰 ${esc(r.encouragement)}</div>`);
+  if (r._local) html.push(`<p class="lead" style="font-size:12px;text-align:center">※ 위는 프록시 미연결 시의 임시 예시 평가입니다.</p>`);
+  $('#evalArea').innerHTML = html.join('');
+}
+function block(title, inner) { return `<div class="eval-block"><h3>${title}</h3>${inner}</div>`; }
+function esc(s) { return String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+$('#evalBtn').addEventListener('click', runEvaluation);
+
+/* ============================================================
+   STEP 6 — 보고서 & 인쇄
+   ============================================================ */
+function onEnterStep6() {
+  if (!$('#rDate').value) {
+    const d = new Date();
+    $('#rDate').value = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+}
+
+function buildReport() {
+  const f = STATE.features || {};
+  const r = STATE.evalResult || {};
+  // 곡선을 이미지로 캡처
+  const imgURL = captureChartImage();
+
+  const meta = (k, v) => `<span><b>${k}</b> ${esc(v || '—')}</span>`;
+  const choiceLabel = { '①': '① 계속 일정하게 낮아진다', '②': '② 낮아지다가 한동안 일정해진 뒤 다시 낮아진다', '③': '③ 일정하다가 갑자기 낮아진다', '④': '④ 낮아지다가 다시 높아진다' };
+
+  const misc = (r.misconceptions || []).map(m =>
+    `<div class="qa"><span class="qt">${esc(m.detected)}</span><br>
+     <span class="at">💭 ${esc(m.guidingQuestion)}</span><br>
+     <span class="at">✅ ${esc(m.correctConcept)}</span></div>`).join('') || '<div class="at">특별한 오개념이 발견되지 않았어요.</div>';
+
+  $('#reportDoc').innerHTML = `
+    <h1>로르산 냉각 곡선 탐구 보고서</h1>
+    <div class="rsub">버니어 척척박사 ② · 상태 변화와 열에너지</div>
+    <div class="report-meta">
+      ${meta('학교', $('#rSchool').value)} ${meta('학년', $('#rGrade').value)}
+      ${meta('반', $('#rClass').value)} ${meta('이름', $('#rName').value)}
+      ${meta('날짜', $('#rDate').value)}
+    </div>
+
+    <div class="report-sec">
+      <h2>1. 탐구 목표 & 나의 예상 (Predict)</h2>
+      <p>액체 로르산을 냉각할 때 온도가 어떻게 변하는지 관찰하고, 그 까닭을 설명한다.</p>
+      <div class="qa"><span class="qt">예상:</span> <span class="at">${esc(choiceLabel[STATE.predict1] || '미선택')}</span></div>
+      <div class="qa"><span class="qt">예상한 이유:</span> <span class="at">${esc(STATE.predict2)}</span></div>
+    </div>
+
+    <div class="report-sec">
+      <h2>2. 측정 결과 (냉각 곡선)</h2>
+      ${imgURL ? `<img id="reportChartImg" src="${imgURL}" alt="냉각 곡선">` : '<p class="at">그래프 없음</p>'}
+      <table class="rtable" style="margin-top:12px">
+        <tr><th>시작 온도</th><th>종료 온도</th><th>추정 응고점</th><th>평탄 구간</th><th>응고 구간</th></tr>
+        <tr>
+          <td>${f.startTemp ?? '—'}℃</td><td>${f.endTemp ?? '—'}℃</td>
+          <td>${f.estimatedFreezingPoint ?? '—'}℃</td>
+          <td>${f.plateauDurationSec ?? 0}초</td>
+          <td>${f.plateauClear ? '뚜렷' : '불명확'}</td>
+        </tr>
+      </table>
+      <p class="at" style="margin-top:6px">로르산(라우르산) 응고점 참고값: 약 ${CFG.FREEZING_POINT}℃</p>
+    </div>
+
+    <div class="report-sec">
+      <h2>3. 탐구 질문에 대한 답변 (Observe · Explain)</h2>
+      <div class="qa"><span class="qt">관찰1. 변하는 구간의 상태:</span> <span class="at">${esc(STATE.observe.q1)}</span></div>
+      <div class="qa"><span class="qt">관찰2. 평평한 구간의 상태:</span> <span class="at">${esc(STATE.observe.q2)}</span></div>
+      <div class="qa"><span class="qt">관찰3. 내가 읽은 응고점:</span> <span class="at">${esc(STATE.observe.q3)}</span></div>
+      <div class="qa"><span class="qt">설명1. 온도가 일정한 까닭:</span> <span class="at">${esc(STATE.explain.q4)}</span></div>
+      <div class="qa"><span class="qt">설명2. 입자 운동·배열의 변화:</span> <span class="at">${esc(STATE.explain.q5)}</span></div>
+    </div>
+
+    <div class="report-sec">
+      <h2>4. AI 평가 요약</h2>
+      <div class="qa"><span class="qt">실험 성공 여부:</span> <span class="at">${r.success ? '성공 🎉' : '보완 필요 🔧'} — ${esc(r.successReason)}</span></div>
+      <div class="qa"><span class="qt">잘된 점:</span> <span class="at">${esc((r.strengths || []).join(' / '))}</span></div>
+      <div class="qa"><span class="qt">보완할 점:</span> <span class="at">${esc((r.improvements || []).join(' / '))}</span></div>
+      <div class="qa"><span class="qt">함께 생각해 볼 점:</span></div>
+      ${misc}
+    </div>
+
+    <div class="report-sec">
+      <h2>5. 정리 — 올바른 개념</h2>
+      <p>액체가 고체로 <b>응고</b>하는 동안에는 열에너지를 <b>방출</b>하기 때문에 온도가 한동안 일정하게 유지된다(응고점 약 ${CFG.FREEZING_POINT}℃).
+      냉각하면 입자 운동이 점점 <b>둔해지고</b>, 입자 사이 거리가 <b>가까워지며</b> 배열이 <b>규칙적</b>으로 변한다.</p>
+    </div>
+  `;
+  $('#report').hidden = false;
+  $('#printBtn').disabled = false;
+  toast('보고서를 만들었어요! 인쇄해 보세요.', 'stop');
+  $('#report').scrollIntoView({ behavior: 'smooth' });
+}
+
+/* 측정 곡선을 깨끗하게 다시 그려 PNG로 캡처 */
+function captureChartImage() {
+  if (!STATE.data.length) return null;
+  const off = document.createElement('canvas');
+  off.width = 560; off.height = 300;
+  off.style.width = '560px'; off.style.height = '300px';
+  // clientWidth가 0이면 drawCurve가 그리지 못하므로 임시로 DOM에 부착
+  off.getContext('2d');
+  document.body.appendChild(off);
+  Object.defineProperty(off, 'clientWidth', { value: 560, configurable: true });
+  Object.defineProperty(off, 'clientHeight', { value: 300, configurable: true });
+  const c = off.getContext('2d');
+  c.fillStyle = '#fff'; c.fillRect(0, 0, 560, 300);
+  drawCurve(off, STATE.data, { plateau: true });
+  const url = off.toDataURL('image/png');
+  off.remove();
+  return url;
+}
+
+$('#buildReportBtn').addEventListener('click', buildReport);
+$('#printBtn').addEventListener('click', () => window.print());
+
+/* ============================================================
+   초기화
+   ============================================================ */
+function init() {
+  buildStepper();
+  bindSettings();
+  setRecStateUI();
+  resizeCanvas();
+  drawCurve(canvas, [], {});
+  goTo(0);
+  evaluateGating();
+  if (!lib || !lib.createDevice) {
+    setConnMsg('센서 라이브러리를 불러오지 못했어요. "센서 없이 시연(데모)"으로 진행할 수 있어요.');
+  }
+}
+init();
+
+</script>
+</body>
+</html>
