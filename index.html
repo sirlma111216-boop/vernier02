@@ -386,8 +386,8 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
     <div class="card accent">
       <div class="eyebrow">STEP 3 · 데이터 수집</div>
       <h2>냉각 곡선을 실시간으로 그려요 ❄️</h2>
-      <p class="lead">센서 온도가 항상 표시됩니다. <b>55 ℃</b> 아래로 내려가며 식기 시작하면 자동으로 기록을 시작하고,
-        <b>33 ℃</b> 아래로 내려가면 자동으로 종료해요. 직접 버튼으로 제어할 수도 있어요.</p>
+      <p class="lead">센서 온도가 항상 표시됩니다. <b>48 ℃</b> 아래로 내려가며 식기 시작하면 자동으로 기록을 시작하고,
+        <b>41 ℃</b> 아래로 내려가면 자동으로 종료해요. 직접 버튼으로 제어할 수도 있어요.</p>
 
       <div class="readout state-IDLE" id="readout">
         <div class="big"><span id="liveTemp">--</span><span class="u">℃</span></div>
@@ -421,8 +421,8 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
         <summary>⚙️ 교사 설정 (측정 주기·자동 임계값)</summary>
         <div class="settings-grid">
           <label>측정 주기(초)<input type="number" id="setSample" min="0.5" max="5" step="0.5" value="2"></label>
-          <label>자동 시작 온도(℃)<input type="number" id="setStart" min="40" max="70" step="1" value="55"></label>
-          <label>자동 종료 온도(℃)<input type="number" id="setStop" min="20" max="42" step="1" value="33"></label>
+          <label>자동 시작 온도(℃)<input type="number" id="setStart" min="40" max="70" step="1" value="48"></label>
+          <label>자동 종료 온도(℃)<input type="number" id="setStop" min="20" max="42" step="1" value="41"></label>
           <label>응고점 참고(℃)<input type="number" id="setFreeze" min="35" max="50" step="1" value="43"></label>
         </div>
       </details>
@@ -528,8 +528,8 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
 /* ---------- 조정 가능한 상수 (교사 설정에서 덮어씀) ---------- */
 const CFG = {
   FREEZING_POINT: 43,   // 로르산(라우르산) 응고점(참고)
-  AUTO_START_TEMP: 55,  // 이 온도 이하 + 하강 추세이면 자동 기록 시작
-  AUTO_STOP_TEMP: 33,   // 이 온도 이하로 내려가면 자동 기록 종료
+  AUTO_START_TEMP: 48,  // 이 온도 이하 + 하강 추세이면 자동 기록 시작
+  AUTO_STOP_TEMP: 41,   // 이 온도 이하로 내려가면 자동 기록 종료
   SAMPLE_MS: 2000,      // 측정/기록 주기
   FLAT_RATE: 0.08,      // 평탄(응고) 구간 판정: |Δ온도/Δ시간| ≤ 이 값(℃/s)
   PLATEAU_MIN_SEC: 20,  // 이 시간 이상 평탄해야 "뚜렷한" 응고 구간으로 인정
@@ -1015,15 +1015,13 @@ function drawCurve(cv, data, opts = {}) {
   const plotW = w - padL - padR, plotH = h - padT - padB;
   c.clearRect(0, 0, w, h);
 
-  // y 범위: 데이터 + 임계값 포함, 약간 여유
-  const temps = data.map(d => d.v);
-  let yMin = Math.min(CFG.AUTO_STOP_TEMP - 3, ...(temps.length ? temps : [25]));
-  let yMax = Math.max(CFG.AUTO_START_TEMP + 5, ...(temps.length ? temps : [60]));
-  yMin = Math.floor(yMin / 5) * 5; yMax = Math.ceil(yMax / 5) * 5;
+  // y 범위: 35~55℃ 고정
+  const yMin = 35, yMax = 55;
   const tMax = Math.max(30, data.length ? data[data.length - 1].t : 30);
 
   const xToPx = t => padL + (t / tMax) * plotW;
-  const yToPx = v => padT + (1 - (v - yMin) / (yMax - yMin)) * plotH;
+  const clampY = v => Math.max(yMin, Math.min(yMax, v));
+  const yToPx = v => padT + (1 - (clampY(v) - yMin) / (yMax - yMin)) * plotH;
 
   // y 격자 + 라벨
   c.font = '11px "JetBrains Mono", monospace'; c.textBaseline = 'middle';
