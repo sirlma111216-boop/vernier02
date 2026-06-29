@@ -1,0 +1,13 @@
+{
+  "name": "gemini-tokyo-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "도쿄(asia-northeast1) 고정 리전 Gemini 릴레이 (Cloudflare 엣지 지역 차단 회피)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

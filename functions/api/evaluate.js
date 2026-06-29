@@ -76,10 +76,8 @@ export async function onRequestPost({ request, env }) {
 
 // ── Gemini (기본) ───────────────────────────────────────────────
 async function callGemini(env, userContent) {
-  if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY 미설정');
   const model = env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
-  const body = JSON.stringify({
+  const geminiPayload = {
     systemInstruction: { parts: [{ text: `${SYSTEM_PROMPT}\n${JSON_SCHEMA_HINT}` }] },
     contents: [{ role: 'user', parts: [{ text: userContent }] }],
     generationConfig: {
@@ -87,7 +85,21 @@ async function callGemini(env, userContent) {
       maxOutputTokens: 1500,
       temperature: 0.4,
     },
-  });
+  };
+
+  // GEMINI_PROXY_URL 이 설정되면 도쿄 Cloud Run 릴레이를 경유한다(지역 차단 회피).
+  // 릴레이는 Gemini 응답을 상태/본문 그대로 돌려주므로 아래 처리 로직은 동일.
+  let url, headers, body;
+  if (env.GEMINI_PROXY_URL) {
+    url = env.GEMINI_PROXY_URL;
+    headers = { 'content-type': 'application/json', 'x-proxy-secret': env.PROXY_SHARED_SECRET || '' };
+    body = JSON.stringify({ model, payload: geminiPayload });
+  } else {
+    if (!env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY 미설정');
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`;
+    headers = { 'content-type': 'application/json' };
+    body = JSON.stringify(geminiPayload);
+  }
 
   // 일시적 오류(429/5xx)만 백오프 후 재시도(최대 3회). 지역제한(400) 등은 즉시 중단.
   const delays = [0, 800, 2000, 4500];
@@ -95,7 +107,7 @@ async function callGemini(env, userContent) {
   for (let i = 0; i < delays.length; i++) {
     if (delays[i]) await sleep(delays[i]);
     let res;
-    try { res = await fetchWithTimeout(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body }, 25000); }
+    try { res = await fetchWithTimeout(url, { method: 'POST', headers, body }, 25000); }
     catch (e) { lastErr = new Error('Gemini fetch 실패: ' + String((e && e.message) || e)); continue; } // 네트워크 오류는 재시도
     if (res.ok) {
       const data = await res.json();
