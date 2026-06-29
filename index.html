@@ -1186,7 +1186,8 @@ function buildPayload() {
 
 async function runEvaluation() {
   $('#evalBtn').disabled = true;
-  const attempts = 6;  // 지역 라우팅(홍콩 등) 회피: 재요청마다 다른 엣지로 재배정됨
+  const attempts = 3;  // 일시적 오류(한도 등)만 재시도. 지역 제한은 재시도하지 않음.
+  let geoFailed = false;
   for (let i = 1; i <= attempts; i++) {
     $('#evalArea').innerHTML = `<div class="spinner"></div><p class="lead" style="text-align:center">척척박사 토끼가 데이터를 살펴보는 중…${i > 1 ? ` (재시도 ${i}/${attempts})` : ''}</p>`;
     try {
@@ -1201,12 +1202,10 @@ async function runEvaluation() {
       catch { throw new Error('서버 응답을 해석할 수 없어요 (HTTP ' + res.status + ')'); }
 
       if (result.error) {
-        // 지역 라우팅 문제는 짧게, 사용량 한도는 길게 기다렸다 재시도(매 요청 다른 엣지로 재배정)
-        const retryable = result.geoBlocked || result.rateLimited;
-        if (retryable && i < attempts) {
-          await new Promise(r => setTimeout(r, result.rateLimited ? 4000 : 1200));
-          continue;
-        }
+        // 지역 제한은 재시도해도 같은 결과 → 즉시 안내
+        if (result.geoBlocked) { geoFailed = true; throw new Error(result.error + (result.detail ? ' — ' + result.detail : '')); }
+        // 일시적 오류(사용량 한도 등)만 재시도
+        if (result.retryable && i < attempts) { await new Promise(r => setTimeout(r, 4000)); continue; }
         throw new Error((result.error || 'AI 평가 실패') + (result.detail ? ' — ' + result.detail : ''));
       }
 
@@ -1217,8 +1216,8 @@ async function runEvaluation() {
       $('#evalBtn').disabled = false; $('#evalBtn').textContent = '다시 평가 받기';
       return;
     } catch (e) {
-      if (i < attempts) { await new Promise(r => setTimeout(r, 2500)); continue; }
-      showEvalError(e.message);
+      if (!geoFailed && i < attempts) { await new Promise(r => setTimeout(r, 2500)); continue; }
+      showEvalError(e.message, geoFailed);
       $('#evalBtn').disabled = false; $('#evalBtn').textContent = '다시 평가 받기';
       return;
     }
@@ -1226,11 +1225,13 @@ async function runEvaluation() {
 }
 
 /* 실패 시 정직한 안내 + 다시 시도 (가짜 성공을 보여주지 않는다) */
-function showEvalError(msg) {
+function showEvalError(msg, geoFailed) {
+  const guide = geoFailed
+    ? `현재 서버가 실행된 위치에서는 AI 평가를 호출할 수 없어요(지역 제한). 잠시 후 다시 시도하면 다른 위치로 연결될 수 있어요. 계속 같은 문제가 생기면 선생님께 알려 주세요.`
+    : `여러 명이 동시에 평가하면 잠깐 사용량 한도(분당 횟수)에 걸릴 수 있어요. <b>30초~1분 뒤</b> 다시 시도해 주세요.`;
   $('#evalArea').innerHTML = `<div class="safety">
       <b>AI 평가를 불러오지 못했어요.</b><br>
-      여러 명이 동시에 평가하면 잠깐 사용량 한도(분당 횟수)에 걸릴 수 있어요.
-      <b>30초~1분 뒤</b> 다시 시도해 주세요.<br>
+      ${guide}<br>
       <span style="font-size:12px; opacity:.75">상세: ${esc(msg)}</span>
     </div>
     <div style="text-align:center; margin-top:12px">
