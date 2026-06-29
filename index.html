@@ -208,6 +208,7 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
 
 /* ---------- STEP 5 평가 ---------- */
 .verdict{ display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:14px; font-weight:800; font-size:17px; margin-bottom:16px; }
+.verdict .vtitle{ white-space:nowrap; flex:0 0 auto; }
 .verdict.ok{ background:#e9f8ec; color:var(--good); border:1px solid #bfe6c8; }
 .verdict.no{ background:var(--vermilion-soft); color:var(--vermilion); border:1px solid #f7d7cb; }
 .eval-block{ margin:16px 0; }
@@ -386,9 +387,10 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
     <div class="card accent">
       <div class="eyebrow">STEP 3 · 데이터 수집</div>
       <h2>냉각 곡선을 실시간으로 그려요 ❄️</h2>
-      <p class="lead">1) 센서 온도가 항상 표시됩니다. <b>48 ℃</b> 아래로 내려가며 식기 시작하면 자동으로 기록을 시작하고,
-        <b>38 ℃</b> 아래로 내려가면 자동으로 종료해요. 직접 버튼으로 제어할 수도 있어요.<br>
-        2) <b>로르산이 담겨 있는 시험관을 차가운 물에 넣어 주세요.</b> 이때, 센서가 시험관 벽에 닿아 있으면 안 돼요.</p>
+      <p class="lead">1) 센서 온도가 항상 표시됩니다.<br>
+        2) 온도가 <b>48 ℃</b> 아래로 내려가면 자동으로 기록을 시작하고 <b>38 ℃</b> 아래로 내려가면 자동으로 종료됩니다.<br>
+        3) 그래프 기록의 시작과 정지를 직접 버튼으로 제어할 수 있어요.<br>
+        4) <b>로르산이 담겨 있는 시험관을 차가운 물에 넣어 주세요.</b> 이때, 센서가 시험관 벽에 닿아 있으면 안 돼요.</p>
 
       <div class="readout state-IDLE" id="readout">
         <div class="big"><span id="liveTemp">--</span><span class="u">℃</span></div>
@@ -1244,7 +1246,7 @@ function showEvalError(msg, geoFailed) {
 function renderEval(r) {
   const html = [];
   html.push(`<div class="verdict ${r.success ? 'ok' : 'no'}">
-    ${r.success ? '🎉 실험 성공!' : '🔧 다시 도전해볼까요?'}
+    <span class="vtitle">${r.success ? '🎉 실험 성공!' : '🔧 다시 도전해볼까요?'}</span>
     <span style="font-weight:500; font-size:14px">${esc(r.successReason || '')}</span></div>`);
 
   if (r.strengths?.length) html.push(block('👍 잘된 점', `<ul>${r.strengths.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`));
