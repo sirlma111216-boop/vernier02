@@ -1186,52 +1186,54 @@ function buildPayload() {
 
 async function runEvaluation() {
   $('#evalBtn').disabled = true;
-  $('#evalArea').innerHTML = '<div class="spinner"></div><p class="lead" style="text-align:center">척척박사 토끼가 데이터를 살펴보는 중…</p>';
-  let result;
-  try {
-    const res = await fetch('/api/evaluate', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(buildPayload()),
-    });
-    const text = await res.text();
-    result = JSON.parse(text);
-    if (result.error) throw new Error(result.detail || result.error);
-  } catch (e) {
-    $('#evalArea').innerHTML = `<div class="safety">AI 평가를 불러오지 못했어요. (${e.message})<br>
-      배포 환경(Cloudflare Pages + GEMINI_API_KEY)에서 동작합니다. 로컬에서는 임시 예시 평가를 보여줄게요.</div>`;
-    result = localFallbackEval();
-    setTimeout(() => renderEval(result), 400);
-    STATE.evalResult = result; evaluateGating();
-    $('#evalBtn').disabled = false; $('#evalBtn').textContent = '다시 평가 받기';
-    return;
+  const attempts = 3;
+  for (let i = 1; i <= attempts; i++) {
+    $('#evalArea').innerHTML = `<div class="spinner"></div><p class="lead" style="text-align:center">척척박사 토끼가 데이터를 살펴보는 중…${i > 1 ? ` (재시도 ${i}/${attempts})` : ''}</p>`;
+    try {
+      const res = await fetch('/api/evaluate', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(buildPayload()),
+      });
+      const text = await res.text();
+      let result;
+      try { result = JSON.parse(text); }
+      catch { throw new Error('서버 응답을 해석할 수 없어요 (HTTP ' + res.status + ')'); }
+
+      if (result.error) {
+        // 사용량 한도(분당)면 잠시 기다렸다가 재시도
+        if (result.rateLimited && i < attempts) { await new Promise(r => setTimeout(r, 4000)); continue; }
+        throw new Error((result.error || 'AI 평가 실패') + (result.detail ? ' — ' + result.detail : ''));
+      }
+
+      // 성공
+      STATE.evalResult = result;
+      renderEval(result);
+      evaluateGating();
+      $('#evalBtn').disabled = false; $('#evalBtn').textContent = '다시 평가 받기';
+      return;
+    } catch (e) {
+      if (i < attempts) { await new Promise(r => setTimeout(r, 2500)); continue; }
+      showEvalError(e.message);
+      $('#evalBtn').disabled = false; $('#evalBtn').textContent = '다시 평가 받기';
+      return;
+    }
   }
-  STATE.evalResult = result;
-  renderEval(result);
-  evaluateGating();
-  $('#evalBtn').disabled = false; $('#evalBtn').textContent = '다시 평가 받기';
 }
 
-/* 로컬/오프라인용 임시 평가 (프록시가 없을 때) */
-function localFallbackEval() {
-  const f = STATE.features || {};
-  const near = f.estimatedFreezingPoint !== null && Math.abs(f.estimatedFreezingPoint - CFG.FREEZING_POINT) <= 3;
-  const success = !!(f.plateauClear && near);
-  return {
-    success,
-    successReason: success
-      ? `평탄 구간이 뚜렷하고, 추정 응고점(${f.estimatedFreezingPoint}℃)이 로르산 기준(약 ${CFG.FREEZING_POINT}℃)에 가까워요.`
-      : '평탄 구간이 뚜렷하지 않거나 추정 응고점이 기준과 차이가 있어요. 측정을 다시 해보면 좋아요.',
-    strengths: ['실험을 끝까지 수행하고 데이터를 기록했어요.', '예상과 관찰을 모두 작성했어요.'],
-    improvements: ['평탄 구간이 더 잘 드러나도록 천천히 식혀 보세요.', '서술형 답변에 근거를 한 가지 더 적어 보세요.'],
-    misconceptions: [{
-      detected: '(예시) 응고할 때 열을 흡수한다고 생각할 수 있어요.',
-      guidingQuestion: '얼음이 얼 때 주변이 따뜻해질까요, 차가워질까요? 응고는 어느 쪽일까요?',
-      correctConcept: '응고할 때는 열에너지를 방출하기 때문에 온도가 한동안 일정하게 유지돼요.',
-    }],
-    encouragement: '직접 측정하고 분석하느라 수고했어요! 다음 단계에서 보고서로 정리해 봐요. 🐰',
-    _local: true,
-  };
+/* 실패 시 정직한 안내 + 다시 시도 (가짜 성공을 보여주지 않는다) */
+function showEvalError(msg) {
+  $('#evalArea').innerHTML = `<div class="safety">
+      <b>AI 평가를 불러오지 못했어요.</b><br>
+      여러 명이 동시에 평가하면 잠깐 사용량 한도(분당 횟수)에 걸릴 수 있어요.
+      <b>30초~1분 뒤</b> 다시 시도해 주세요.<br>
+      <span style="font-size:12px; opacity:.75">상세: ${esc(msg)}</span>
+    </div>
+    <div style="text-align:center; margin-top:12px">
+      <button class="btn vermilion" id="evalRetryBtn">↻ 다시 시도</button>
+    </div>`;
+  const rb = document.getElementById('evalRetryBtn');
+  if (rb) rb.addEventListener('click', runEvaluation);
 }
 
 function renderEval(r) {
@@ -1251,7 +1253,6 @@ function renderEval(r) {
     html.push(block('🤔 함께 생각해 봐요', m));
   }
   if (r.encouragement) html.push(`<div class="encourage">🐰 ${esc(r.encouragement)}</div>`);
-  if (r._local) html.push(`<p class="lead" style="font-size:12px;text-align:center">※ 위는 프록시 미연결 시의 임시 예시 평가입니다.</p>`);
   $('#evalArea').innerHTML = html.join('');
 }
 function block(title, inner) { return `<div class="eval-block"><h3>${title}</h3>${inner}</div>`; }
