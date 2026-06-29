@@ -1173,13 +1173,13 @@ function buildPayload() {
     },
     predictions: { choice: STATE.predict1, reason: STATE.predict2 },
     observeAnswers: {
-      stateWhileChanging: STATE.observe.q1,
-      stateWhileFlat: STATE.observe.q2,
-      readFreezingPoint: STATE.observe.q3,
+      '관찰1_온도가_빠르게_내려가는_기울어진_구간의_상태': STATE.observe.q1,
+      '관찰2_온도가_일정한_평평한_구간의_상태': STATE.observe.q2,
+      '관찰3_학생이_그래프에서_읽은_응고점': STATE.observe.q3,
     },
     explainAnswers: {
-      whyTempConstant: STATE.explain.q4,
-      particleMotionAndArrangement: STATE.explain.q5,
+      '설명1_온도가_일정하게_유지되는_까닭_열에너지_출입': STATE.explain.q4,
+      '설명2_냉각시_입자운동과_배열의_변화': STATE.explain.q5,
     },
   };
 }
