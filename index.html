@@ -1201,7 +1201,14 @@ async function runEvaluation() {
       const text = await res.text();
       let result;
       try { result = JSON.parse(text); }
-      catch { throw new Error('서버 응답을 해석할 수 없어요 (HTTP ' + res.status + ')'); }
+      catch {
+        // 404/405는 재배포 직후 함수가 잠깐 빠져 있는 상태 → 잠시 후 재시도하면 해결
+        if ((res.status === 404 || res.status === 405) && i < attempts) {
+          await new Promise(r => setTimeout(r, 5000));
+          continue;
+        }
+        throw new Error('서버 응답을 해석할 수 없어요 (HTTP ' + res.status + ')');
+      }
 
       if (result.error) {
         // 지역 제한은 재시도해도 같은 결과 → 즉시 안내
