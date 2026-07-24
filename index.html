@@ -184,7 +184,46 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
 
 .chartwrap{ background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:14px 12px 8px; box-shadow:var(--shadow); }
 .chartwrap h3{ margin:2px 8px 8px; font-size:13px; color:var(--muted); font-weight:600; }
-#coolingChart, #reviewChart{ width:100%; height:300px; display:block; }
+#coolingChart, #reviewChart, #sharedChart{ width:100%; height:300px; display:block; }
+
+/* ---------- 진입 분기 / 모둠 공유 ---------- */
+.entry-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:8px; }
+.entry-card{
+  display:flex; flex-direction:column; align-items:flex-start; gap:6px; text-align:left;
+  padding:20px 18px; border:2px solid var(--line); border-radius:18px; background:#fff; cursor:pointer;
+  font-family:inherit; transition:.15s;
+}
+.entry-card:hover{ border-color:var(--teal); transform:translateY(-2px); box-shadow:var(--shadow); }
+.entry-card .ico{ font-size:30px; }
+.entry-card b{ font-size:17px; color:var(--teal-deep); }
+.entry-card .desc{ font-size:13.5px; color:var(--muted); line-height:1.55; }
+
+.shared-badge{
+  max-width:880px; margin:0 auto 12px; padding:10px 16px; border-radius:999px;
+  background:var(--teal-soft); border:1px solid #cfe9e3; color:var(--teal-deep);
+  font-size:14px; font-weight:700; text-align:center;
+}
+.shared-badge .mono{ font-family:"JetBrains Mono",monospace; background:#fff; padding:2px 8px; border-radius:8px; margin-left:6px; font-size:13px; }
+
+.code-input-wrap{ display:flex; justify-content:center; margin:18px 0 6px; }
+.code-input{
+  font-family:"JetBrains Mono",monospace; font-size:clamp(26px,7vw,40px); font-weight:700;
+  letter-spacing:.3em; text-align:center; text-transform:uppercase;
+  width:min(340px,92%); padding:14px 6px 14px 22px; border:2.5px solid var(--line); border-radius:16px; background:#fff;
+}
+.code-input:focus{ outline:3px solid rgba(20,133,122,.25); border-color:var(--teal); }
+.code-hint{ text-align:center; font-size:13px; color:var(--muted); margin:0 0 14px; }
+
+.code-card{ text-align:center; background:var(--teal-soft); border:1px solid #cfe9e3; border-radius:18px; padding:20px 16px; }
+.code-cap{ font-size:13px; font-weight:800; color:var(--teal-deep); }
+.code-big{
+  font-family:"JetBrains Mono",monospace; font-weight:700; color:var(--teal-deep);
+  font-size:clamp(38px,11vw,60px); letter-spacing:.16em; margin:8px 0 12px; user-select:all;
+}
+.code-note{ font-size:13px; color:var(--muted); line-height:1.6; margin-top:10px; }
+.share-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+.share-row label{ font-size:13px; font-weight:700; }
+.share-row input{ max-width:170px; margin-top:5px; }
 
 .rec-controls{ display:flex; gap:10px; flex-wrap:wrap; margin:16px 0; }
 
@@ -301,6 +340,30 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
 
 <main>
 
+  <div id="sharedBadge" class="shared-badge no-print" hidden></div>
+
+  <!-- ===================== 진입 분기 (측정 / 코드 받기) ===================== -->
+  <section class="panel" id="panel-entry">
+    <div class="card accent">
+      <div class="eyebrow">시작하기</div>
+      <h2>어떻게 탐구할까요? 🐰</h2>
+      <p class="lead">모둠에서 <b>한 명이 센서로 측정</b>하고, 나머지 모둠원은 그 데이터를 <b>코드로 받아</b> 각자 분석할 수 있어요.</p>
+      <div class="entry-grid">
+        <button class="entry-card" id="entryMeasure">
+          <span class="ico">🌡️</span>
+          <b>① 직접 측정하기</b>
+          <span class="desc">센서를 연결해 우리 모둠의 냉각 곡선을 직접 측정해요. 측정이 끝나면 모둠원에게 줄 공유 코드가 만들어져요.</span>
+        </button>
+        <button class="entry-card" id="entryShared">
+          <span class="ico">🔑</span>
+          <b>② 코드로 데이터 받기</b>
+          <span class="desc">모둠 대표가 측정한 데이터를 6자리 코드로 받아, 같은 그래프로 내가 직접 분석해요.</span>
+        </button>
+      </div>
+      <div class="note" style="margin-top:16px">어느 쪽을 고르든 <b>예상하기</b>는 먼저 직접 해요. 남의 데이터를 보기 전에 내 예상을 적어야 하니까요!</div>
+    </div>
+  </section>
+
   <!-- ===================== STEP 0 — 도입 & 예상 ===================== -->
   <section class="panel" id="panel-0">
     <div class="card accent">
@@ -325,6 +388,33 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
     <div class="navrow">
       <span></span>
       <button class="btn" data-next>다음 단계로 →</button>
+    </div>
+  </section>
+
+  <!-- ===================== 코드로 데이터 받기 ===================== -->
+  <section class="panel" id="panel-code">
+    <div class="card accent">
+      <div class="eyebrow">데이터 받기</div>
+      <h2>모둠 코드를 입력해요 🔑</h2>
+      <p class="lead">측정한 모둠원이 알려준 <b>6자리 코드</b>를 입력하면, 같은 냉각 곡선으로 탐구할 수 있어요.</p>
+      <div class="code-input-wrap">
+        <input id="codeInput" class="code-input" maxlength="6" autocomplete="off" spellcheck="false" placeholder="------">
+      </div>
+      <p class="code-hint">헷갈리는 <b>0 · O · 1 · I · L</b> 은 코드에 쓰이지 않아요.</p>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn" id="codeLoadBtn" disabled>데이터 받기</button>
+      </div>
+      <div id="codeMsg" style="margin-top:14px"></div>
+
+      <div class="chartwrap" id="codePreview" hidden style="margin-top:16px">
+        <h3>받은 냉각 곡선</h3>
+        <canvas id="sharedChart"></canvas>
+        <div class="feature-grid" id="sharedFeatureGrid" style="margin:12px 4px 6px"></div>
+      </div>
+    </div>
+    <div class="navrow">
+      <button class="btn ghost" data-prev>← 이전</button>
+      <button class="btn" data-next disabled>탐구 질문 풀러 가기 →</button>
     </div>
   </section>
 
@@ -420,6 +510,15 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
         <div class="feature-grid" id="featureGrid"></div>
       </div>
 
+      <div id="shareBox" hidden style="margin-top:16px">
+        <div class="share-row">
+          <label>모둠 이름(선택)<input type="text" id="groupLabelInput" placeholder="예: 3모둠" maxlength="20"></label>
+          <button class="btn vermilion sm" id="shareBtn">👥 모둠원과 공유하기</button>
+          <button class="btn ghost sm" id="csvBtn">⬇ CSV 내보내기</button>
+        </div>
+        <div id="shareResult" style="margin-top:14px"></div>
+      </div>
+
       <details class="settings">
         <summary>⚙️ 교사 설정 (측정 주기·자동 임계값)</summary>
         <div class="settings-grid">
@@ -442,8 +541,11 @@ textarea:focus, input[type=text]:focus{ outline:3px solid rgba(20,133,122,.25); 
       <div class="eyebrow">STEP 4 · 탐구 질문 (Observe · Explain)</div>
       <h2>그래프를 보며 하나씩 답해 봐요 🔎</h2>
       <div class="chartwrap" style="margin:10px 0 18px;">
-        <h3>내가 측정한 냉각 곡선</h3>
+        <h3 id="reviewChartTitle">내가 측정한 냉각 곡선</h3>
         <canvas id="reviewChart"></canvas>
+        <div style="text-align:right; margin:8px 4px 2px">
+          <button class="btn ghost sm" id="csvBtn4">⬇ CSV 내보내기</button>
+        </div>
       </div>
 
       <div class="qprogress" id="qProgress">질문 1 / 5</div>
@@ -540,8 +642,9 @@ const CFG = {
 
 /* ---------- 전역 상태 ---------- */
 const STATE = {
-  current: 0,
-  unlocked: 0,                      // 도달 가능한 최대 단계
+  current: 'entry',
+  unlockedIdx: 0,                   // 현재 모드 시퀀스에서 도달 가능한 최대 인덱스
+  mode: null,                       // 'measure'(직접 측정) | 'shared'(코드로 받기)
   predict1: null, predict2: '',
   recState: 'IDLE',                 // IDLE | RECORDING | STOPPED
   data: [],                         // {t: 경과초, v: 온도}
@@ -549,6 +652,9 @@ const STATE = {
   observe: { q1: null, q2: null, q3: '' },
   explain: { q4: '', q5: '' },
   evalResult: null,
+  dataSource: 'direct',             // 'direct' | 'shared'
+  shareCode: null,                  // 발급받았거나 입력한 공유 코드
+  sharedFrom: null,                 // 원 측정 모둠 이름
 };
 
 const STEP_NAMES = ['도입·예상','실험 준비','센서 연결','데이터 수집','탐구 질문','AI 평가','보고서'];
@@ -570,16 +676,24 @@ function toast(msg, kind = '') {
 /* ============================================================
    스테퍼 & 단계 전환 (완료 조건 게이팅)
    ============================================================ */
+/** 모드별 단계 순서. 코드로 받은 학생은 센서 연결·측정(1~3)을 건너뛴다. */
+function sequence() {
+  return STATE.mode === 'shared' ? [0, 'code', 4, 5, 6] : [0, 1, 2, 3, 4, 5, 6];
+}
+function stepLabel(s) { return s === 'code' ? '데이터 받기' : STEP_NAMES[s]; }
+function stepIndex(s) { return sequence().indexOf(s); }
+
 function buildStepper() {
   const nav = $('#stepper');
   nav.innerHTML = '';
-  STEP_NAMES.forEach((name, i) => {
+  if (!STATE.mode) return;              // 진입 화면에서는 스테퍼를 숨긴다
+  sequence().forEach((s, i) => {
     const chip = document.createElement('button');
     chip.className = 'step-chip';
-    chip.dataset.step = i;
-    chip.innerHTML = `<span class="n">${i}</span>${name}`;
+    chip.dataset.step = s;
+    chip.innerHTML = `<span class="n">${i}</span>${stepLabel(s)}`;
     chip.addEventListener('click', () => {
-      if (i <= STATE.unlocked) goTo(i);
+      if (i <= STATE.unlockedIdx) goTo(s);
       else toast('이전 단계를 먼저 완료해 주세요.', 'warn');
     });
     nav.appendChild(chip);
@@ -588,18 +702,19 @@ function buildStepper() {
 }
 
 function refreshStepper() {
-  $$('.step-chip').forEach(chip => {
-    const i = +chip.dataset.step;
-    chip.classList.toggle('active', i === STATE.current);
-    chip.classList.toggle('done', i < STATE.current && i <= STATE.unlocked);
-    chip.classList.toggle('locked', i > STATE.unlocked);
+  const cur = stepIndex(STATE.current);
+  $$('.step-chip').forEach((chip, i) => {
+    chip.classList.toggle('active', i === cur);
+    chip.classList.toggle('done', cur >= 0 && i < cur && i <= STATE.unlockedIdx);
+    chip.classList.toggle('locked', i > STATE.unlockedIdx);
   });
 }
 
 function goTo(step) {
   STATE.current = step;
   $$('.panel').forEach(p => p.classList.remove('active'));
-  $('#panel-' + step).classList.add('active');
+  const el = $('#panel-' + step);
+  if (el) el.classList.add('active');
   refreshStepper();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (step === 3) onEnterStep3();
@@ -616,10 +731,14 @@ function evaluateGating() {
   setNextEnabled(1, allChecked);
   // STEP 2: 연결됨 (toStep3.disabled를 따로 제어)
   // STEP 3: 기록 STOPPED + 데이터 존재
-  $('#toStep4').disabled = !(STATE.recState === 'STOPPED' && STATE.data.length > 1);
+  const t4 = $('#toStep4');
+  if (t4) t4.disabled = !(STATE.recState === 'STOPPED' && STATE.data.length > 1);
+  // 코드 받기: 공유 데이터가 실제로 복원되었을 때만 진행
+  setNextEnabled('code', STATE.dataSource === 'shared' && STATE.data.length > 1);
   // STEP 4: 마지막 질문의 'AI 평가 받기' 버튼으로 STEP 5 진입 (updateQNav에서 제어)
   // STEP 5: 평가 결과 존재
-  $('#toStep6').disabled = !STATE.evalResult;
+  const t6 = $('#toStep6');
+  if (t6) t6.disabled = !STATE.evalResult;
 }
 
 function setNextEnabled(step, ok) {
@@ -628,20 +747,23 @@ function setNextEnabled(step, ok) {
 }
 
 function unlock(step) {
-  if (step > STATE.unlocked) STATE.unlocked = step;
+  const i = stepIndex(step);
+  if (i > STATE.unlockedIdx) STATE.unlockedIdx = i;
   refreshStepper();
 }
 
-/* 다음/이전 버튼 위임 */
+/* 다음/이전 버튼 위임 — 모드별 시퀀스를 따라 이동 */
 document.addEventListener('click', e => {
   const nx = e.target.closest('[data-next]');
   const pv = e.target.closest('[data-prev]');
+  const seq = sequence();
+  const i = seq.indexOf(STATE.current);
   if (nx && !nx.disabled) {
-    const next = Math.min(STATE.current + 1, STEP_NAMES.length - 1);
+    const next = seq[Math.min(i + 1, seq.length - 1)];
     unlock(next);
     goTo(next);
   }
-  if (pv) goTo(Math.max(STATE.current - 1, 0));
+  if (pv) goTo(seq[Math.max(i - 1, 0)]);
 });
 
 /* ============================================================
@@ -916,6 +1038,8 @@ function stopRecording(auto) {
   STATE.features = extractFeatures(STATE.data);
   if (STATE.features) renderFeatures();
   else $('#featureBox').hidden = true;   // 표본이 너무 적으면 특징 카드 생략
+  $('#shareBox').hidden = false;         // 측정 완료 → 모둠원과 공유 가능
+  restoreSavedCode();
   evaluateGating();
   if (demoTimer) { clearInterval(demoTimer); demoTimer = null; }
   toast(auto ? `${CFG.AUTO_STOP_TEMP}℃ 도달 — 자동으로 기록을 마쳤어요!` : '기록을 멈췄어요.', 'stop');
@@ -927,6 +1051,9 @@ function resetRecording() {
   STATE.features = null;
   recordStartMs = null;
   $('#featureBox').hidden = true;
+  $('#shareBox').hidden = true;
+  $('#shareResult').innerHTML = '';
+  STATE.shareCode = null;
   $('#elapsedPill').textContent = '⏱ 0초';
   setRecStateUI();
   evaluateGating();
@@ -990,23 +1117,27 @@ function extractFeatures(data) {
   };
 }
 
-function renderFeatures() {
-  const f = STATE.features;
-  $('#featureBox').hidden = false;
-  const grid = $('#featureGrid');
+/** 특징 카드 렌더 — 내 측정(STEP 3)과 공유받은 데이터(코드 화면) 양쪽에서 사용 */
+function renderFeatureCards(grid, f) {
+  if (!grid || !f) return;
   const fp = f.estimatedFreezingPoint;
   grid.innerHTML = [
-    ['시작 온도', `${f.startTemp}<small>℃</small>`],
-    ['종료 온도', `${f.endTemp}<small>℃</small>`],
-    ['추정 응고점', fp !== null ? `${fp}<small>℃</small>` : '—'],
-    ['평탄 구간', `${f.plateauDurationSec}<small>초</small>`],
+    ['시작 온도', `${f.startTemp ?? '—'}<small>℃</small>`],
+    ['종료 온도', `${f.endTemp ?? '—'}<small>℃</small>`],
+    ['추정 응고점', (fp !== null && fp !== undefined) ? `${fp}<small>℃</small>` : '—'],
+    ['평탄 구간', `${f.plateauDurationSec ?? 0}<small>초</small>`],
     ['응고 구간', f.plateauClear ? '뚜렷 ✅' : '불명확 ⚠️'],
   ].map(([k, v]) => `<div class="feature"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
 }
 
+function renderFeatures() {
+  $('#featureBox').hidden = false;
+  renderFeatureCards($('#featureGrid'), STATE.features);
+}
+
 /* ---------- 캔버스 곡선 그리기 ---------- */
 function resizeCanvas() {
-  [canvas, $('#reviewChart')].forEach(cv => {
+  [canvas, $('#reviewChart'), $('#sharedChart')].forEach(cv => {
     if (!cv) return;
     const dpr = window.devicePixelRatio || 1;
     const w = cv.clientWidth, h = cv.clientHeight;
@@ -1081,6 +1212,279 @@ function loop() {
 }
 
 /* ============================================================
+   모둠 간 데이터 공유 (공유 코드)
+   - 측정한 모둠이 코드를 발급하고, 모둠원은 코드로 같은 데이터를 받아 각자 분석한다.
+   - 개인정보(이름·학교·반)는 payload에 절대 담지 않는다.
+   - 빌드 단계가 없는 단일 HTML이므로 supabase-js 대신 REST RPC를 직접 호출한다.
+     (supabase.rpc(fn, args) 와 동작 동일)
+   ============================================================ */
+const SHARE = { url: null, key: null, ready: false, checked: false };
+const SHARE_LS_KEY = 'vernier02.shareCode';
+
+/** Supabase 접속 정보는 Cloudflare 환경변수에서 받아온다(저장소에 키를 두지 않음). */
+async function loadShareConfig() {
+  if (SHARE.checked) return SHARE.ready;
+  SHARE.checked = true;
+  try {
+    const r = await fetch('/api/share-config', { cache: 'no-store' });
+    const j = await r.json();
+    if (j && j.configured && j.url && j.anonKey) {
+      // 프로젝트 URL만 남긴다 — '.../rest/v1/' 까지 붙여 넣어도 중복되지 않도록 정규화
+      SHARE.url = String(j.url).trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
+      SHARE.key = j.anonKey;
+      SHARE.ready = true;
+    }
+  } catch (_) { /* 오프라인/미설정 — 공유만 비활성, 탐구는 계속 가능 */ }
+  return SHARE.ready;
+}
+
+async function shareRpc(fn, args) {
+  if (!(await loadShareConfig())) throw new Error('NOT_CONFIGURED');
+  const res = await fetch(`${SHARE.url}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      apikey: SHARE.key,
+      Authorization: 'Bearer ' + SHARE.key,
+    },
+    body: JSON.stringify(args),
+  });
+  const text = await res.text();
+  let body = null;
+  try { body = text ? JSON.parse(text) : null; } catch (_) { /* JSON 아님 */ }
+  if (!res.ok) {
+    // PostgREST 오류: { code:'P0001', message:'...' } (함수가 raise exception 한 경우)
+    const err = new Error((body && body.message) || ('SERVER_' + res.status));
+    err.status = res.status;
+    err.pgCode = body && body.code;
+    throw err;
+  }
+  return body;
+}
+
+function dataSourceLabel() {
+  if (STATE.dataSource !== 'shared') return '직접 측정';
+  const g = STATE.sharedFrom ? ` (${STATE.sharedFrom})` : '';
+  return `공유 코드 ${STATE.shareCode || ''}${g}`;
+}
+
+function renderSharedBadge() {
+  const el = $('#sharedBadge');
+  if (!el) return;
+  if (STATE.dataSource === 'shared') {
+    el.hidden = false;
+    el.innerHTML = `🔗 <b>${esc(STATE.sharedFrom || '다른 모둠')}</b>의 데이터로 탐구 중` +
+      (STATE.shareCode ? `<span class="mono">${esc(STATE.shareCode)}</span>` : '');
+  } else {
+    el.hidden = true;
+  }
+}
+
+/* ---------- 업로드(코드 발급) ---------- */
+let sharing = false;
+async function shareData() {
+  if (sharing) return;                       // 중복 클릭 방지
+  if (!STATE.data.length) { toast('먼저 측정을 완료해 주세요.', 'warn'); return; }
+  sharing = true;
+  const btn = $('#shareBtn');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '업로드 중…';
+  $('#shareResult').innerHTML = '<div class="spinner"></div>';
+  try {
+    const groupLabel = ($('#groupLabelInput').value || '').trim();
+    const payload = {
+      version: 1,
+      experiment: 'lauric-acid-cooling',
+      groupLabel: groupLabel || null,        // 익명 표기만 (개인정보 아님)
+      recordedAt: new Date().toISOString(),
+      samples: STATE.data.map(d => ({ t: d.t, temp: d.v })),
+      config: {
+        AUTO_START_TEMP: CFG.AUTO_START_TEMP,
+        AUTO_STOP_TEMP: CFG.AUTO_STOP_TEMP,
+        SAMPLE_MS: CFG.SAMPLE_MS,
+      },
+      features: STATE.features || {},
+    };
+    const code = await shareRpc('create_share_session', { p_payload: payload });
+    if (!code) throw new Error('NO_CODE');
+    STATE.shareCode = code;
+    try { localStorage.setItem(SHARE_LS_KEY, JSON.stringify({ code, groupLabel, at: Date.now() })); } catch (_) {}
+    renderShareCode(code);
+    toast('공유 코드가 만들어졌어요!', 'stop');
+  } catch (e) {
+    renderShareError(e.message);
+  } finally {
+    sharing = false; btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+function renderShareCode(code) {
+  $('#shareResult').innerHTML = `
+    <div class="code-card">
+      <div class="code-cap">모둠원에게 알려줄 공유 코드</div>
+      <div class="code-big">${esc(code)}</div>
+      <button class="btn sm" id="copyCodeBtn">📋 코드 복사</button>
+      <div class="code-note">모둠원들이 이 코드를 입력하면 같은 데이터로 탐구할 수 있어요.<br>
+        코드는 <b>7일 후</b> 사라져요.</div>
+    </div>`;
+  $('#copyCodeBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(code); toast('코드를 복사했어요.'); }
+    catch (_) { toast('복사가 안 되면 코드를 길게 눌러 선택해 주세요.', 'warn'); }
+  });
+}
+
+function renderShareError(msg) {
+  const notConfigured = msg === 'NOT_CONFIGURED';
+  const guide = notConfigured
+    ? '공유 서버가 아직 설정되지 않았어요. 선생님께 알려 주세요.'
+    : '공유 서버에 연결할 수 없어요. 잠시 후 다시 시도하거나 선생님께 알려 주세요.';
+  $('#shareResult').innerHTML = `
+    <div class="safety"><b>공유하지 못했어요.</b><br>${guide}<br>
+      <span style="font-size:12px;opacity:.75">내 측정 데이터는 그대로 있으니 탐구는 계속할 수 있어요. (${esc(msg)})</span>
+    </div>
+    <div style="text-align:center;margin-top:10px"><button class="btn vermilion sm" id="shareRetryBtn">↻ 다시 시도</button></div>`;
+  const rb = $('#shareRetryBtn');
+  if (rb) rb.addEventListener('click', () => { SHARE.checked = false; shareData(); });
+}
+
+/** 새로고침 후에도 직전에 발급한 코드를 다시 볼 수 있게 한다 */
+function restoreSavedCode() {
+  if (STATE.shareCode) return;
+  try {
+    const raw = localStorage.getItem(SHARE_LS_KEY);
+    if (!raw) return;
+    const { code, at } = JSON.parse(raw);
+    if (!code) return;
+    const days = (Date.now() - (at || 0)) / 86400000;
+    if (days > 7) { localStorage.removeItem(SHARE_LS_KEY); return; }
+    $('#shareResult').innerHTML =
+      `<div class="code-note" style="text-align:center">최근에 발급한 코드: <b class="mono">${esc(code)}</b>
+        (이번 측정을 새로 공유하려면 위 버튼을 눌러 주세요.)</div>`;
+  } catch (_) {}
+}
+
+/* ---------- 다운로드(코드로 받기) ---------- */
+const CODE_ALPHABET = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/;
+
+async function loadSharedData() {
+  const btn = $('#codeLoadBtn');
+  const code = ($('#codeInput').value || '').trim().toUpperCase();
+  if (!CODE_ALPHABET.test(code)) {
+    $('#codeMsg').innerHTML = `<div class="safety">6자리 코드를 정확히 입력해 주세요. (0·O·1·I·L 은 쓰이지 않아요)</div>`;
+    return;
+  }
+  btn.disabled = true;
+  $('#codeMsg').innerHTML = '<div class="spinner"></div>';
+  try {
+    const res = await shareRpc('get_share_session', { p_code: code });
+    // 배포된 함수는 payload를 그대로 반환한다. ({status, payload} 형태도 호환 허용)
+    const payload = (res && res.status && res.payload) ? res.payload : res;
+    if (!payload || !Array.isArray(payload.samples)) {
+      $('#codeMsg').innerHTML = `<div class="safety"><b>코드를 찾을 수 없어요.</b><br>철자를 다시 확인해 주세요.</div>`;
+      return;
+    }
+    applySharedPayload(payload, code);
+  } catch (e) {
+    // 서버 함수가 '없거나 만료됨'을 예외로 알려준다(둘을 구분하지 않음)
+    if (e.status === 400 || e.pgCode === 'P0001') {
+      $('#codeMsg').innerHTML = `<div class="safety"><b>코드를 찾을 수 없어요.</b><br>
+        철자를 다시 확인해 주세요. 만든 지 <b>7일이 지난 코드</b>는 사라져요.
+        <span style="font-size:12px;opacity:.75"> (${esc(e.message)})</span></div>`;
+      return;
+    }
+    const notConfigured = e.message === 'NOT_CONFIGURED';
+    $('#codeMsg').innerHTML = `<div class="safety"><b>공유 서버에 연결할 수 없어요.</b><br>
+      ${notConfigured ? '아직 설정되지 않았어요. 선생님께 알려 주세요.' : '잠시 후 다시 시도해 주세요.'}
+      <span style="font-size:12px;opacity:.75"> (${esc(e.message)})</span></div>
+      <div style="text-align:center;margin-top:10px"><button class="btn vermilion sm" id="codeRetryBtn">↻ 다시 시도</button></div>`;
+    const rb = $('#codeRetryBtn');
+    if (rb) rb.addEventListener('click', () => { SHARE.checked = false; loadSharedData(); });
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function applySharedPayload(p, code) {
+  const samples = (p && p.samples) || [];
+  STATE.data = samples
+    .map(s => ({ t: Number(s.t), v: Number(s.temp) }))
+    .filter(d => isFinite(d.t) && isFinite(d.v));
+  if (STATE.data.length < 2) {
+    $('#codeMsg').innerHTML = `<div class="safety">받은 데이터에 측정값이 거의 없어요. 다른 코드를 확인해 주세요.</div>`;
+    return;
+  }
+  STATE.features = (p.features && Object.keys(p.features).length) ? p.features : extractFeatures(STATE.data);
+  STATE.recState = 'STOPPED';
+  STATE.dataSource = 'shared';
+  STATE.shareCode = code;
+  STATE.sharedFrom = p.groupLabel || null;
+
+  renderSharedBadge();
+  $('#codePreview').hidden = false;
+  resizeCanvas();
+  drawCurve($('#sharedChart'), STATE.data, { plateau: true });
+  renderFeatureCards($('#sharedFeatureGrid'), STATE.features);
+  $('#codeMsg').innerHTML =
+    `<div class="note">✅ <b>${esc(STATE.sharedFrom || '다른 모둠')}</b>의 데이터를 받았어요. 아래 곡선으로 탐구를 이어가요!</div>`;
+  evaluateGating();
+  toast('데이터를 받았어요!', 'stop');
+}
+
+/* ---------- CSV 내보내기 ---------- */
+function exportCSV() {
+  if (!STATE.data.length) { toast('내보낼 데이터가 없어요.', 'warn'); return; }
+  const f = STATE.features || {};
+  const group = STATE.dataSource === 'shared'
+    ? (STATE.sharedFrom || '(이름 없음)')
+    : (($('#groupLabelInput') && $('#groupLabelInput').value.trim()) || '(이름 없음)');
+  const csv = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [
+    ['항목', '값'],
+    ['실험', '로르산 냉각 곡선'],
+    ['모둠', group],
+    ['데이터 출처', dataSourceLabel()],
+    ['시작 온도(℃)', f.startTemp ?? ''],
+    ['종료 온도(℃)', f.endTemp ?? ''],
+    ['추정 응고점(℃)', f.estimatedFreezingPoint ?? ''],
+    ['평탄 구간(초)', f.plateauDurationSec ?? ''],
+    ['응고 구간', f.plateauClear ? '뚜렷' : '불명확'],
+    ['내보낸 시각', new Date().toLocaleString('ko-KR')],
+    [],
+    ['시간(초)', '온도(℃)'],
+    ...STATE.data.map(d => [d.t, d.v]),
+  ];
+  const body = rows.map(r => r.map(csv).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + body], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `로르산_냉각곡선_${group.replace(/[^\w가-힣]/g, '')}_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('CSV 파일을 내려받았어요.');
+}
+
+/* ---------- 이벤트 연결 ---------- */
+$('#entryMeasure').addEventListener('click', () => {
+  STATE.mode = 'measure'; STATE.dataSource = 'direct';
+  buildStepper(); unlock(0); goTo(0); evaluateGating();
+});
+$('#entryShared').addEventListener('click', () => {
+  STATE.mode = 'shared';
+  buildStepper(); unlock(0); goTo(0); evaluateGating();
+});
+$('#codeInput').addEventListener('input', e => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 6);
+  $('#codeLoadBtn').disabled = e.target.value.length !== 6;
+});
+$('#codeInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !$('#codeLoadBtn').disabled) loadSharedData();
+});
+$('#codeLoadBtn').addEventListener('click', loadSharedData);
+$('#shareBtn').addEventListener('click', shareData);
+$('#csvBtn').addEventListener('click', exportCSV);
+$('#csvBtn4').addEventListener('click', exportCSV);
+
+/* ============================================================
    STEP 4 — 탐구 질문 (Observe · Explain), 한 번에 하나씩
    ============================================================ */
 const QUESTIONS = [
@@ -1100,6 +1504,10 @@ let qIdx = 0;
 function onEnterStep4() {
   resizeCanvas();
   drawCurve($('#reviewChart'), STATE.data, { plateau: true });
+  $('#reviewChartTitle').textContent = STATE.dataSource === 'shared'
+    ? `${STATE.sharedFrom || '다른 모둠'}에게 받은 냉각 곡선`
+    : '내가 측정한 냉각 곡선';
+  renderSharedBadge();
   renderQuestion();
 }
 
@@ -1316,6 +1724,7 @@ function buildReport() {
 
     <div class="report-sec">
       <h2>2. 측정 결과 (냉각 곡선)</h2>
+      <div class="qa"><span class="qt">데이터 출처:</span> <span class="at">${esc(dataSourceLabel())}</span></div>
       ${imgURL ? `<img id="reportChartImg" src="${imgURL}" alt="냉각 곡선">` : '<p class="at">그래프 없음</p>'}
       <table class="rtable" style="margin-top:12px">
         <tr><th>시작 온도</th><th>종료 온도</th><th>추정 응고점</th><th>평탄 구간</th><th>응고 구간</th></tr>
@@ -1390,7 +1799,7 @@ function init() {
   setRecStateUI();
   resizeCanvas();
   drawCurve(canvas, [], {});
-  goTo(0);
+  goTo('entry');            // 먼저 [직접 측정] / [코드로 받기] 를 고르게 한다
   evaluateGating();
   if (!lib || !lib.createDevice) {
     setConnMsg('센서 라이브러리를 불러오지 못했어요. "센서 없이 시연(데모)"으로 진행할 수 있어요.');
